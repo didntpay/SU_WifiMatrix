@@ -14,6 +14,7 @@ namespace LEDController
     public partial class Form1 : Form
     {
         public Socket ledconnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        public Socket sb = new Socket(AddressFamily.InterNetwork, SocketType.Rdm, ProtocolType.Tcp);
 
         public Form1()
         {
