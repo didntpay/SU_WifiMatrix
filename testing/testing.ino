@@ -30,37 +30,57 @@ void setup() {
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(50);
+  matrix.setBrightness(10);
   matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
+  //matrix.drawRGBBitmap(b)
+}
+
+void displayText(String message, int8_t startx, int8_t starty)
+{
+    matrix.fillScreen(0);//clear the screen
+    matrix.setCursor(startx, starty);
+    matrix.print(message);
 }
 
 int start_loc = matrix.width();
 WiFiClient tmpClient = server.available();
+bool client_connect;
 void loop() {
   
-  /*if(tmpClient)//this class overloaded the bool operator and returns the status of the connected field in the class
+  if(tmpClient)//this class overloaded the bool operator and returns the status of the connected field in the class
   {
-    Serial.print("Connected to socket ip: ");
-    Serial.println(tmpClient.remoteIP());
+    //Serial.print("Connected to socket ip: ");
+    //Serial.println(tmpClient.remoteIP());
+    if(!client_connect)
+    {
+      client_connect = true;
+    }
+    matrix.setTextSize(1);
+    matrix.setTextWrap(false);
+
+    displayText("hehe", start_loc, 0);
+    
+    start_loc--;
+    Serial.println(start_loc);
+    if(start_loc < -26)
+    {
+      start_loc = matrix.width();
+      
+    }
+    matrix.show();
+    delay(500);
   }
   else if(!tmpClient)
   {
     //Serial.println("Waiting for connection...");
+    if(client_connect)
+    {
+      client_connect = false;
+      start_loc = 0;
+    }
     tmpClient = server.available();
     delay(1000);
   }
-  else{*/
-  matrix.fillScreen(0);
-  matrix.setCursor(start_loc, 3);
-  matrix.print("Test");
-  start_loc--;
-
-  if(start_loc < -30)
-  {
-    start_loc = matrix.width();
-    
-  }
-  matrix.show();
-  delay(100);
+  //tmpClient.stop();
   
 }
