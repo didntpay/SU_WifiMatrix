@@ -5,8 +5,8 @@
 #include <EEPROM.h>
 
 #define LEDOUTPUT D5
-#define wifiname  "SU-ECE-Lab" //"jmw" change this when you are not at Seattle University3
-#define wifipass  "B9fmvrfe" //"2067799939"
+#define wifiname   "jmw" //"SU-ECE-Lab" change this when you are not at Seattle University3
+#define wifipass   "2067799939" //B9fmvrfe
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -33,6 +33,32 @@ struct Body
   String message;
   byte command;
   byte panel_mode;
+
+  void writeToEEPROM()
+  {
+    byte buff[6];
+    for(int i = 0; i < 4; i++)
+    {
+      buff[i] = (char)message.charAt(i);
+    }
+    buff[4] = command;
+    buff[5] = panel_mode;
+
+    for(int i = 0 ; i < 6; i++)
+    {
+      EEPROM.write(i, buff[i]);
+    }
+  }
+
+  void importFromEEPROM()
+  {
+    for(int i = 0; i < 4; i++)
+    {
+      this->message += EEPROM.read(i);    
+    }
+    this->command = EEPROM.read(4);
+    this->panel_mode = EEPROM.read(5);
+  }
 };
 
 Body socket_body;
@@ -58,7 +84,6 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
-  matrix.setTextWrap(false);
   matrix.setBrightness(10);
   matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
   }
@@ -91,6 +116,14 @@ typedef struct header
         return false; 
       
    }
+   bool checkForConnection()
+   {
+      tmpClient = server.available();
+      if(tmpClient)
+        return true;
+      else
+        return false;
+   }
 }Software_Interrupt;
 
 
@@ -98,6 +131,27 @@ typedef struct header
 
 
 header socket_header(0x00, 0);
+
+bool displayText(int8_t x, int8_t y, String& message)
+{
+  matrix.fillScreen(0);
+  matrix.fillScreen(0);
+  matrix.setCursor(x, y);
+  matrix.print(message);
+  matrix.show();
+  unsigned long timeout = millis();
+  while((millis() - timeout) < 100)
+  {
+    if(socket_header.checkForInterrupt() || socket_header.checkForConnection())
+    {
+      matrix.fillScreen(0);
+      receiveData();
+      return true;
+    }              
+  }
+  delay(100);
+  return false;
+}
 
 void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy)
 {
@@ -111,23 +165,11 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = 1;
         else
           multiplier = -1;
-        for(int8_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally right to left
-        {
-          
-          matrix.fillScreen(0);
-          matrix.setCursor(i, starty);
-          matrix.print(message);
-          matrix.show();
-          unsigned long timeout = millis();
-          while((millis() - timeout) < 100)
-          {
-            if(socket_header.checkForInterrupt())
-            {
-              matrix.fillScreen(0);
-              return;
-            }          
-          }
-          delay(100);    
+        for(int8_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally 
+        {         
+          if(displayText(i, 0, message))
+            return;
+          //delay(100);
         }
         Serial.println(message);
     }
@@ -141,19 +183,8 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = -1;
         for(int8_t i = starty; i > multiplier * endy; starty > endy ?i-- : i++)//scrolling horizontally right to left
         {
-          matrix.fillScreen(0);
-          matrix.setCursor(startx, i);
-          matrix.print(message);
-          matrix.show();
-          unsigned long timeout = millis();
-          while((millis() - timeout) < 200)
-          {
-            if(socket_header.checkForInterrupt())
-            {
-              matrix.fillScreen(0);
-              return;
-            }          
-          }    
+          if(displayText(0, i, message))
+            return;  
         }
     }
 }
@@ -164,43 +195,50 @@ void receiveData()//string for now, later, implement body to hold different valu
 {
   if(tmpClient.available()) 
   {  
+      Serial.println("Now receiving data...");
       // first read the header: 2 byte, one of them is a char
       socket_header.datatype = tmpClient.read();
       socket_header.len = (char)tmpClient.read();
-      //delete socket_body;
-      //socket_body = NULL;
-      //socket_body = Body();
-      switch(socket_header.datatype)
+      if(socket_header.datatype == DATA_MESSAGE)
       {
-        case DATA_MESSAGE:
           socket_header.messageoption = tmpClient.read();
-          //Serial.println(socket_header.datatype);
+          socket_body.message = "";
           for(int i = 0; i < socket_header.len; i++)
           {
-            //Serial.println("Data in");
             socket_body.message += char(tmpClient.read());
           }
-          break;
-        case DATA_CMD:
+      }
+      else
+      {
+          Serial.println("New mode!");
           socket_body.panel_mode = tmpClient.read();
-          break;
       }
   }
 }
 
-
+void delayAndCheck(uint8_t interval)//ms
+{
+    unsigned long timeout = millis();
+    while((millis() - timeout) < interval)
+    {
+      if(socket_header.checkForInterrupt() || socket_header.checkForConnection())
+      {
+        matrix.fillScreen(0);
+        receiveData();
+      }              
+    }
+}
 
 
 
 void loop() {
   //Serial.println(socket_body.panel_mode, HEX);
-  if(socket_body.panel_mode != Led_Mode && socket_body.panel_mode != 0)
-  {
-  
+  /*if(socket_body.panel_mode != Led_Mode && socket_body.panel_mode != 0)
+  {  
     Led_Mode = (Mode)socket_body.panel_mode;
     Serial.println(Led_Mode, HEX);
-    EEPROM.write(0, (byte)Led_Mode);
-  }
+    //EEPROM.write(0, (byte)Led_Mode);
+  }*/
   
   if(tmpClient)//this class overloaded the bool operator and returns the status of the connected field in the class
   {    
@@ -212,7 +250,26 @@ void loop() {
       client_connect = true;
     }
     receiveData();   
-    
+
+    if(socket_header.datatype == DATA_MESSAGE)
+    {
+        switch(socket_header.messageoption)
+        {
+          case SCROLL_RIGHT:
+            scrollingText(socket_body.message, WIDTH, 0, -WIDTH, 0);
+            break;
+          case SCROLL_LEFT:
+            scrollingText(socket_body.message, 0, 0, WIDTH * 2, 0);
+            break;
+          case SCROLL_TOP:
+            scrollingText(socket_body.message, WIDTH / 2 - FONT_WIDTH, 0 - FONT_HEIGHT, WIDTH / 2 - FONT_WIDTH, HEIGHT * 2);
+            break;
+          case SCROLL_BOTTOM:
+            scrollingText(socket_body.message, WIDTH / 2 - FONT_WIDTH, HEIGHT + FONT_HEIGHT, WIDTH / 2 - FONT_WIDTH, -HEIGHT);
+            break;
+        }
+        
+    }
     
   }
   else if(!tmpClient)
@@ -223,13 +280,13 @@ void loop() {
       Serial.println("Disconnected...");
     }
     tmpClient = server.available();
-    delay(1000);
   }
   
   /*if(Led_Mode == DEFAULTMODE)
   {
       String defaultmessage = "YO";
       scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
+      delayAndCheck(100);
   }
   else
   {
@@ -237,28 +294,7 @@ void loop() {
       scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0); 
   }*/
   
-  switch(socket_header.datatype)
-  {
-    case DATA_MESSAGE: 
-      switch(socket_header.messageoption)
-      {
-        case SCROLL_RIGHT:
-          scrollingText(socket_body.message, WIDTH, 0, -WIDTH, 0);
-          break;
-        case SCROLL_LEFT:
-          scrollingText(socket_body.message, 0, 0, WIDTH * 2, 0);
-          //Serial.println("Printing left to right");
-          //scrollingText(message, WIDTH, 0, -WIDTH, 0);
-          break;
-        case SCROLL_TOP:
-          scrollingText(socket_body.message, WIDTH / 2 - FONT_WIDTH, 0 - FONT_HEIGHT, WIDTH / 2 - FONT_WIDTH, HEIGHT * 2);
-          break;
-        case SCROLL_BOTTOM:
-          scrollingText(socket_body.message, WIDTH / 2 - FONT_WIDTH, HEIGHT + FONT_HEIGHT, WIDTH / 2 - FONT_WIDTH, -HEIGHT);
-          break;
-      }
-      break;
-      
-  }
+  
   
 }
+

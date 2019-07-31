@@ -2,6 +2,7 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
 #include <ESP8266WiFi.h>
+#include <EEPROM.h>
 
 #define LEDOUTPUT D5
 #define wifiname  "jmw"//"SU-ECE-Lab"//change this when you are not at Seattle University3
@@ -15,7 +16,9 @@ WiFiServer server(80);
 void setup() {
   Serial.begin(9600);
   WiFi.begin(wifiname, wifipass);
-
+  //byte tmp = EEPROM.read(0);
+  Serial.println(tmp);
+  //EEPROM.write(0, 0x80);  
   while(WiFi.status() != WL_CONNECTED)
   {
     Serial.println("Waiting to connect");
@@ -47,40 +50,6 @@ WiFiClient tmpClient = server.available();
 bool client_connect;
 void loop() {
   
-  if(tmpClient)//this class overloaded the bool operator and returns the status of the connected field in the class
-  {
-    //Serial.print("Connected to socket ip: ");
-    //Serial.println(tmpClient.remoteIP());
-    if(!client_connect)
-    {
-      client_connect = true;
-    }
-    matrix.setTextSize(1);
-    matrix.setTextWrap(false);
-
-    displayText("hehe", start_loc, 0);
-    
-    start_loc--;
-    Serial.println(start_loc);
-    if(start_loc < -26)
-    {
-      start_loc = matrix.width();
-      
-    }
-    matrix.show();
-    delay(500);
-  }
-  else if(!tmpClient)
-  {
-    //Serial.println("Waiting for connection...");
-    if(client_connect)
-    {
-      client_connect = false;
-      start_loc = 0;
-    }
-    tmpClient = server.available();
-    delay(1000);
-  }
-  //tmpClient.stop();
+  
   
 }

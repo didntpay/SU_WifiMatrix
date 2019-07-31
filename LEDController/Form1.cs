@@ -176,6 +176,7 @@ namespace LEDController
         private void Sendcmd_Click(object sender, EventArgs e)
         {
             if (ledconnection == null || !ledconnection.Connected)
+                return;
 
             socket_header.length = (char)0;
             socket_header.datatype = DATA_CMD;
