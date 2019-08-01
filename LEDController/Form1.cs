@@ -80,7 +80,7 @@ namespace LEDController
                 }
                 catch (SocketException se)
                 {
-                    //do nothing for now.
+                    ledconnection = null;
                 }
             }
         }
@@ -108,30 +108,7 @@ namespace LEDController
             connection.Send(buffer, SocketFlags.None);
         }
 
-        private void endConnection(ref Socket connection)
-        {
-            if (ledconnection == null || !connection.Connected)
-            {
-                MessageBox.Show("Connect to a esp8266 first", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            else
-            {
-                try
-                {
-                    connection.Shutdown(SocketShutdown.Both);
-                    connection.Close();
-                    connection = null;
-                }
-                catch (SocketException se)
-                {
-                    MessageBox.Show(se.Message + "\n assigned socket to null, please try to reconnect.",
-                                    "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    ledconnection = null;
-
-                }
-
-            }
-        }
+        
 
         private void Disconnect_Click(object sender, EventArgs e)
         {
@@ -145,9 +122,18 @@ namespace LEDController
                 return;
             if (messageinput.Text.Length < 129)
             {
-                socket_header.length = (char)messageinput.Text.Length;
-                socket_header.datatype = DATA_MESSAGE;
-                send(ref ledconnection, messageinput.Text, DATA_MESSAGE);
+                try
+                {
+                    socket_header.length = (char)messageinput.Text.Length;
+                    socket_header.datatype = DATA_MESSAGE;
+                    send(ref ledconnection, messageinput.Text, DATA_MESSAGE);
+                }
+                catch (SocketException se)
+                {
+                    debug.Text += se.Message + "\n";
+                    debug.Text += "Inner exception: " + se.InnerException.Message + "\n"; 
+                    debug.Text += se.StackTrace;
+                }
             }
 
         }
@@ -206,6 +192,31 @@ namespace LEDController
             ledconnection.Send(buffer, SocketFlags.None);
 
 
+        }
+
+        private void endConnection(ref Socket connection)
+        {
+            if (ledconnection == null || !connection.Connected)
+            {
+                MessageBox.Show("Connect to a esp8266 first", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            else
+            {
+                try
+                {
+                    connection.Shutdown(SocketShutdown.Both);
+                    connection.Close();
+                    connection = null;
+                }
+                catch (SocketException se)
+                {
+                    MessageBox.Show(se.Message + "\n assigned socket to null, please try to reconnect.",
+                                    "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    ledconnection = null;
+
+                }
+
+            }
         }
     }
 }

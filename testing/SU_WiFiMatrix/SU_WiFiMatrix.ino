@@ -27,6 +27,8 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 10, LEDOUTPUT, firstled, NEO_
 WiFiServer server(789);
 
 enum Mode:byte {DEFAULTMODE = 0x40, AONE = 0x50, ATWO = 0x60, ATHREE = 0x70, SLEEP = 0x00};
+WiFiClient tmpClient = server.available();
+bool client_connect;
 
 struct Body
 {
@@ -34,6 +36,20 @@ struct Body
   byte command;
   byte panel_mode;
 
+  Body()
+  {
+    this->message = "";
+    this->command = 0x00;
+    this->panel_mode = DEFAULTMODE;
+  }
+  
+  Body(const char* mes, byte cmd, byte ledmode)
+  {
+    this->message = String(mes);
+    this->command = cmd;
+    this->panel_mode = ledmode;
+  }
+  
   void writeToEEPROM()
   {
     byte buff[6];
@@ -48,58 +64,38 @@ struct Body
     {
       EEPROM.write(i, buff[i]);
     }
+    EEPROM.commit();
+    Serial.println("Saved data in Flash");
   }
 
-  void importFromEEPROM()
+  bool importFromEEPROM()
   {
-    for(int i = 0; i < 4; i++)
+    if(EEPROM.read(5) == 0)
     {
-      this->message += EEPROM.read(i);    
+      this->message = "";
+      this->command = 0x00;
+      this->panel_mode = DEFAULTMODE;
+      return false;
     }
-    this->command = EEPROM.read(4);
-    this->panel_mode = EEPROM.read(5);
+    else
+    {
+      for(int i = 0; i < 4; i++)
+      {
+        this->message += EEPROM.read(i);    
+      }
+      this->command = EEPROM.read(4);
+      this->panel_mode = EEPROM.read(5);
+      return true;
+    }
   }
 };
 
-Body socket_body;
-Mode Led_Mode = DEFAULTMODE;
-
-void setup() {
-  Serial.begin(9600);
-  WiFi.begin(wifiname, wifipass);
-  socket_body = Body();
-  byte tmp = EEPROM.read(0);
-  if(tmp != NULL)
-    socket_body.panel_mode = tmp;
-  while(WiFi.status() != WL_CONNECTED)
-  {
-    Serial.println("Waiting to connect");
-    delay(1000);
-  }
-  
-  Serial.print("Connected to wifi, IP: ");
-  Serial.println(WiFi.localIP());
-
-  server.begin();
-  // put your setup code here, to run once:
-  pinMode(LEDOUTPUT, OUTPUT);
-  matrix.begin();
-  matrix.setBrightness(10);
-  matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
-  }
-
-
-
-WiFiClient tmpClient = server.available();
-bool client_connect;
-
-
-typedef struct header
+typedef struct Header
 {
   byte datatype;
   uint8_t len;
   byte messageoption;
-  header(byte dt, uint8_t Len)
+  Header(byte dt, uint8_t Len)
   {
     this->datatype = dt;
     this->len = Len; 
@@ -107,7 +103,7 @@ typedef struct header
    
    bool checkForInterrupt()
    {   
-      if(!tmpClient)
+      if(!tmpClient.connected())
         return false;
       
       if(tmpClient.available())
@@ -116,21 +112,46 @@ typedef struct header
         return false; 
       
    }
-   bool checkForConnection()
+   
+   void checkForConnection()
    {
+      if(tmpClient.connected())
+        return;
+        
       tmpClient = server.available();
-      if(tmpClient)
-        return true;
-      else
-        return false;
    }
 }Software_Interrupt;
 
+Body socket_body;
+Header socket_header(0x00, 0);
+
+void setup() {
+  Serial.begin(9600);
+  EEPROM.begin(6);
+  WiFi.begin(wifiname, wifipass);
+  
+  while(WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("Waiting to connect");
+    delay(1000);
+  }
+  
+  Serial.print("Connected to wifi, IP: ");
+  Serial.println(WiFi.localIP());
+  if(socket_body.importFromEEPROM())
+    Serial.println("Imported pre-set values from Flash");
+  else
+    Serial.println("Initalized socket body with default setting");
+
+  server.begin();
+  // put your setup code here, to run once:
+  pinMode(LEDOUTPUT, OUTPUT);
+  matrix.begin();
+  matrix.setBrightness(10);
+  matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b) 
 
 
-
-
-header socket_header(0x00, 0);
+  }
 
 bool displayText(int8_t x, int8_t y, String& message)
 {
@@ -140,16 +161,17 @@ bool displayText(int8_t x, int8_t y, String& message)
   matrix.print(message);
   matrix.show();
   unsigned long timeout = millis();
-  while((millis() - timeout) < 100)
+  while((millis() - timeout) < 200)
   {
-    if(socket_header.checkForInterrupt() || socket_header.checkForConnection())
+    socket_header.checkForConnection();
+    if(socket_header.checkForInterrupt())
     {
       matrix.fillScreen(0);
-      receiveData();
       return true;
-    }              
+    }
+                  
   }
-  delay(100);
+  delay(0);
   return false;
 }
 
@@ -201,6 +223,7 @@ void receiveData()//string for now, later, implement body to hold different valu
       socket_header.len = (char)tmpClient.read();
       if(socket_header.datatype == DATA_MESSAGE)
       {
+          Serial.println("Receiving message");
           socket_header.messageoption = tmpClient.read();
           socket_body.message = "";
           for(int i = 0; i < socket_header.len; i++)
@@ -208,11 +231,12 @@ void receiveData()//string for now, later, implement body to hold different valu
             socket_body.message += char(tmpClient.read());
           }
       }
-      else
+      else//DATA_CMD
       {
           Serial.println("New mode!");
           socket_body.panel_mode = tmpClient.read();
       }
+      socket_body.writeToEEPROM();
   }
 }
 
@@ -221,7 +245,7 @@ void delayAndCheck(uint8_t interval)//ms
     unsigned long timeout = millis();
     while((millis() - timeout) < interval)
     {
-      if(socket_header.checkForInterrupt() || socket_header.checkForConnection())
+      if(socket_header.checkForInterrupt())
       {
         matrix.fillScreen(0);
         receiveData();
@@ -233,14 +257,8 @@ void delayAndCheck(uint8_t interval)//ms
 
 void loop() {
   //Serial.println(socket_body.panel_mode, HEX);
-  /*if(socket_body.panel_mode != Led_Mode && socket_body.panel_mode != 0)
-  {  
-    Led_Mode = (Mode)socket_body.panel_mode;
-    Serial.println(Led_Mode, HEX);
-    //EEPROM.write(0, (byte)Led_Mode);
-  }*/
   
-  if(tmpClient)//this class overloaded the bool operator and returns the status of the connected field in the class
+  if(tmpClient.connected())//this class overloaded the bool operator and returns the status of the connected field in the class
   {    
     
     if(!client_connect)
@@ -250,9 +268,10 @@ void loop() {
       client_connect = true;
     }
     receiveData();   
-
-    if(socket_header.datatype == DATA_MESSAGE)
+    
+    /*if(socket_header.datatype == DATA_MESSAGE)
     {
+        
         switch(socket_header.messageoption)
         {
           case SCROLL_RIGHT:
@@ -268,8 +287,7 @@ void loop() {
             scrollingText(socket_body.message, WIDTH / 2 - FONT_WIDTH, HEIGHT + FONT_HEIGHT, WIDTH / 2 - FONT_WIDTH, -HEIGHT);
             break;
         }
-        
-    }
+    }*/
     
   }
   else if(!tmpClient)
@@ -282,17 +300,17 @@ void loop() {
     tmpClient = server.available();
   }
   
-  /*if(Led_Mode == DEFAULTMODE)
+  if(socket_body.panel_mode == DEFAULTMODE)
   {
       String defaultmessage = "YO";
       scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
-      delayAndCheck(100);
+      //delayAndCheck(100);
   }
-  else
+  else if(socket_body.panel_mode == AONE)
   {
-      String defaultmessage = "Different Mode";
-      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0); 
-  }*/
+      String defaultmessage = "HE";
+      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
+  }
   
   
   

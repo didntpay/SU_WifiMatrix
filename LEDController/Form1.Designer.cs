@@ -41,6 +41,7 @@
             this.modeoptions = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
             this.sendcmd = new System.Windows.Forms.Button();
+            this.debug = new System.Windows.Forms.RichTextBox();
             this.SuspendLayout();
             // 
             // connect
@@ -138,7 +139,7 @@
             "bottom_most",
             "custom"});
             this.scrollingoption.Location = new System.Drawing.Point(30, 131);
-            this.scrollingoption.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.scrollingoption.Margin = new System.Windows.Forms.Padding(2);
             this.scrollingoption.Name = "scrollingoption";
             this.scrollingoption.Size = new System.Drawing.Size(171, 24);
             this.scrollingoption.TabIndex = 10;
@@ -155,7 +156,7 @@
             "Animation 3",
             "Sleep mode"});
             this.modeoptions.Location = new System.Drawing.Point(392, 54);
-            this.modeoptions.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.modeoptions.Margin = new System.Windows.Forms.Padding(2);
             this.modeoptions.Name = "modeoptions";
             this.modeoptions.Size = new System.Drawing.Size(155, 24);
             this.modeoptions.TabIndex = 12;
@@ -173,7 +174,7 @@
             // sendcmd
             // 
             this.sendcmd.Location = new System.Drawing.Point(420, 98);
-            this.sendcmd.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.sendcmd.Margin = new System.Windows.Forms.Padding(2);
             this.sendcmd.Name = "sendcmd";
             this.sendcmd.Size = new System.Drawing.Size(114, 26);
             this.sendcmd.TabIndex = 14;
@@ -181,12 +182,21 @@
             this.sendcmd.UseVisualStyleBackColor = true;
             this.sendcmd.Click += new System.EventHandler(this.Sendcmd_Click);
             // 
+            // debug
+            // 
+            this.debug.Location = new System.Drawing.Point(207, 355);
+            this.debug.Name = "debug";
+            this.debug.Size = new System.Drawing.Size(169, 72);
+            this.debug.TabIndex = 15;
+            this.debug.Text = "Debug Info:";
+            // 
             // Form1
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(576, 439);
+            this.Controls.Add(this.debug);
             this.Controls.Add(this.sendcmd);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.modeoptions);
@@ -222,6 +232,7 @@
         private System.Windows.Forms.ComboBox modeoptions;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button sendcmd;
+        private System.Windows.Forms.RichTextBox debug;
     }
 }
 
