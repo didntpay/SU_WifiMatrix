@@ -23,6 +23,18 @@
 #define FONT_WIDTH 6
 
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ZIGZAG;
+const byte snowflakes[] = 
+{
+  0, 1, 1, 0, 1, 1, 0, 0,
+  1, 1, 1, 1, 1, 1, 1, 0,
+  1, 1, 1, 1, 1, 1, 1, 0,
+  1, 1, 1, 1, 1, 1, 1, 0,
+  0, 1, 1, 1, 1, 1, 0, 0,
+  0, 0, 1, 1, 1, 0, 0, 0,
+  0, 0, 0, 1, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0
+};
+const byte* animation_table = {snowflakes};
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 10, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
 WiFiServer server(789);
 
@@ -253,7 +265,10 @@ void delayAndCheck(uint8_t interval)//ms
     }
 }
 
-
+void playAnimation(uint8_t index)
+{
+  
+}
 
 void loop() {
   //Serial.println(socket_body.panel_mode, HEX);
@@ -302,9 +317,7 @@ void loop() {
   
   if(socket_body.panel_mode == DEFAULTMODE)
   {
-      String defaultmessage = "YO";
-      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
-      //delayAndCheck(100);
+      
   }
   else if(socket_body.panel_mode == AONE)
   {
