@@ -23,9 +23,9 @@ const int heart[] = {       // Heart bitmap
   0, 0, 0, 0, 0, 0, 0, 0
 };
 
-const int snowflakes[] = 
+/*const int snowflakes[] = 
 {
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+  1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
@@ -36,7 +36,7 @@ const int snowflakes[] =
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-}
+};*/
 
 void setup() {
   Serial.begin(9600);
@@ -92,16 +92,27 @@ void displayHeart(int8_t startx, int8_t starty)
   matrix.show();
 }
 
+void displayAllWhite()
+{
+  for(int i = 0; i < 320; i++)
+  {
+    matrix.drawPixel(i, i / 32, matrix.Color(255,255, 255));
+    matrix.show();
+    delay(0);
+  }
+}
+
 /*int start_loc = matrix.width();
 WiFiClient tmpClient = server.available();
 bool client_connect;*/
 
 void loop() {
-  for(int i = 1; i < 8; i++)
+  /*for(int i = 1; i < 8; i++)
   {
     displayHeart(i, 0);
     delay(200);
-  }
+  }*/
+  displayAllWhite();
   //matrix.drawPixel(1, 1, matrix.Color(255, 0, 0));
   //matrix.show();
   

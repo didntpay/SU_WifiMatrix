@@ -5,8 +5,8 @@
 #include <EEPROM.h>
 
 #define LEDOUTPUT D5
-#define wifiname   "jmw" //"SU-ECE-Lab" change this when you are not at Seattle University3
-#define wifipass   "2067799939" //B9fmvrfe
+#define wifiname   "SU-ECE-Lab" //change this when you are not at Seattle University3
+#define wifipass   "B9fmvrfe"
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -23,6 +23,9 @@
 #define FONT_WIDTH 6
 
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ZIGZAG;
+
+uint16_t snow[] = {0x8080800};
+
 const byte snowflakes[] = 
 {
   0, 1, 1, 0, 1, 1, 0, 0,
@@ -267,7 +270,14 @@ void delayAndCheck(uint8_t interval)//ms
 
 void playAnimation(uint8_t index)
 {
-  
+  byte* animation = (byte*)animation_table[index];
+  int8_t dimension = sizeof(animation) / sizeof(int);
+  int8_t width = sqrt(dimension);
+
+  for(int i = 0; i < dimension; i++)
+  {
+    matrix.drawPixel(i % width, i / width, matrix.Color(255, 255, 255));
+  }
 }
 
 void loop() {
@@ -317,7 +327,8 @@ void loop() {
   
   if(socket_body.panel_mode == DEFAULTMODE)
   {
-      
+      String defaultmessage = "YO";
+      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
   }
   else if(socket_body.panel_mode == AONE)
   {
@@ -328,4 +339,3 @@ void loop() {
   
   
 }
-
