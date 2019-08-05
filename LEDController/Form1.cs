@@ -168,10 +168,10 @@ namespace LEDController
             socket_header.datatype = DATA_CMD;
             byte[] header = socket_header.toBytes();
             byte[] buffer = new byte[3];
-            byte mode = 0x00;
+            byte mode = CMD_DEFAULT;
             switch (modeoptions.SelectedItem.ToString())
             {
-                case "Change mode":
+                case "Default mode":
                     mode = CMD_DEFAULT;
                     break;
                 case "Animation 1":
