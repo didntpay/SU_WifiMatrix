@@ -1,8 +1,6 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_NeoMatrix.h>
-#include <Adafruit_NeoPixel.h>
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
+#include "Animations.h"
 
 #define LEDOUTPUT D5
 #define wifiname   "jmw" //"SU-ECE-Lab" //change this when you are not at Seattle University3
@@ -22,24 +20,9 @@
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
 
+
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ZIGZAG;
 
-
-const byte snowflakes[] = 
-{
-  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
-  0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0,
-  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0
-};
-const byte* animation_table = {snowflakes};
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 10, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
 WiFiServer server(789);
 
