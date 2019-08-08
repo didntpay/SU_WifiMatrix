@@ -8,8 +8,10 @@
 #define wifiname  "jmw"//"SU-ECE-Lab"//change this when you are not at Seattle University3
 #define wifipass  "2067799939"//"B9fmvrfe"
 
-uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ZIGZAG;
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 10, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
+#define COLOR_INCREAMENT 0.3
+
+uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 16, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
 //WiFiServer server(80);
 
 
@@ -62,7 +64,7 @@ void displayHeart(int8_t startx, int8_t starty)
   {
     for(int col = 0; col < 8; col++)
     {
-      matrix.drawPixel(startx + col, starty + row, getColor(heart[row * 8 + col]));
+      //matrix.drawPixel(startx + col, starty + row, getColor(heart[row * 8 + col]));
     }
   }
   matrix.show();
@@ -70,11 +72,17 @@ void displayHeart(int8_t startx, int8_t starty)
 
 void displayAllWhite()
 {
-  for(int i = 0; i < 320; i++)
+  matrix.fillScreen(0);
+
+  for(int i = 0; i < 16; i++)
   {
-    matrix.drawPixel(i, i / 32, matrix.Color(255,255, 255));
+    for(int j = 0; j < 32; j++)
+    {
+       matrix.drawPixel(j, i, matrix.Color(0, 0, 255));
+    }
     matrix.show();
-    delay(0);
+    delay(1000);
+    matrix.fillScreen(0);
   }
 }
 
@@ -83,11 +91,8 @@ WiFiClient tmpClient = server.available();
 bool client_connect;*/
 
 void loop() {
-  for(int i = 1; i < 8; i++)
-  {
-    displayHeart(i, 0);
-    delay(200);
-  }
+  displayAllWhite();
+  delay(1000);
   //matrix.drawPixel(1, 1, matrix.Color(255, 0, 0));
   //matrix.show();
   

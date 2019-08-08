@@ -15,8 +15,6 @@
 #define SCROLL_TOP   0x11
 #define SCROLL_BOTTOM 0x12
 
-#define WIDTH 32
-#define HEIGHT 10
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
 
@@ -256,16 +254,39 @@ void delayAndCheck(uint8_t interval)//ms
 
 void playAnimation(uint8_t index, int8_t startx, int8_t starty)
 {
-  matrix.fillScreen(0);
+  //matrix.fillScreen(0);
   byte* animation = (byte*)animation_table[index];
-  int8_t dimension = sizeof(animation) / sizeof(int);
+  int8_t dimension = sizeof(animation) / sizeof(byte);
   int8_t width = sqrt(dimension);
   Serial.println("Printing animation");
   for(int i = 0; i < dimension; i++)
   {
     matrix.drawPixel(startx + i % width, starty + i / width, matrix.Color(255, 255, 255));
+    if(i % width ==0)
+      delay(10);
   }
   matrix.show();
+}
+
+//dropping snowflakes at 3 divided section
+void dropSnowFlakes()
+{
+  int8_t ranx_left = random(0, 12);
+  int8_t ranx_center = random(12, 24);
+  int8_t ranx_right = random(24, 32);
+
+  int8_t rany_left = random(0, 16);
+  int8_t rany_center = random(0, 16);
+  int8_t rany_right = random(0, 16);
+  
+  for(int i = 0; i < HEIGHT; i++)
+  {
+    playAnimation(0, ranx_left, rany_left + i);
+    playAnimation(0, ranx_center, rany_center + i);
+    playAnimation(0, ranx_left, rany_right + i);
+
+    delay(300);
+  }
 }
 
 void loop() {

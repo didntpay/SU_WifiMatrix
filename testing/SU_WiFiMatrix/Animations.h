@@ -4,6 +4,8 @@
 
 #define COLOR_INCREMENT 12
 #define COLOR_DECREAMENT 10
+#define WIDTH 32
+#define HEIGHT 16
 
 extern Adafruit_NeoMatrix matrix;
 
@@ -71,15 +73,14 @@ void zigZagTraverse()
   {    
     int starty = i / 32;
     int startx = i % 32;
-    if(starty != 0 && starty % 2 != 0)
-      startx += 32;
-    matrix.drawLine(startx, starty, startx + 3, starty, matrix.Color());//define color later
+    matrix.drawLine(startx, starty, startx + 3, starty, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));//define color later
     matrix.show();
     delay(10);
+    matrix.drawLine(startx, starty, startx + 3, starty, matrix.Color(0, 0, 0));
   }
 }
 
-void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length; int8_t dia_length, int8_t step_length)
+void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length, int8_t dia_length, int8_t step_length)
 {
   matrix.fillScreen(0);
   matrix.setBrightness(50);
@@ -89,13 +90,80 @@ void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length; int8_t d
     matrix.show();
     delay(10);
   }
-  //upward diagonally line
-  for(int i = startx + horizon_length; i < )
-}
 
-void oppositeRandomLine()
-{
+  startx += horizon_length;
+  //upward diagonally line
+  for(int i = 0; i < dia_length; i += step_length)
+  {
+    int8_t tmp_x = startx + i;
+    int8_t tmp_y = starty + i;
+    matrix.drawLine(tmp_x, tmp_y, tmp_x + step_length, tmp_y + step_length, matrix.Color(255, 0, 0));
+    matrix.show();
+    delay(10);
+  }
+
+  startx += dia_length;
+  starty += dia_length;
+
+  //downward diagonal line
+  for(int i = 0; i < dia_length; i += step_length)
+  {
+    int8_t tmp_x = startx - i;
+    int8_t tmp_y = starty - i;
+    matrix.drawLine(tmp_x, tmp_y, tmp_x - step_length, tmp_y - step_length, matrix.Color(255, 0, 0));
+    matrix.show();
+    delay(10);
+  }
+
+  startx += dia_length;
+  starty -= dia_length;
+
+  //finishing horizontal line
+  for(int i = 0; i < horizon_length; i++)
+  {
+    matrix.drawLine(i + startx, starty, i + startx + step_length, starty, matrix.Color(255, 0, 0));
+    matrix.show();
+    delay(10);
+  }
   
 }
 
+void oppositeRandomLine()
+{//prints random color pixel starting on the top and bottom line and moving toward the cetner
+ for(int y = 0; y < 16; y++)
+ {
+  for(int count = 0; count < 10; count++)
+  {
+    int8_t ranx_top = random(0, 32);
+    int8_t ranx_bot = random(0, 32);
+    int8_t r = random(0, 255);
+    int8_t g = random(0, 255);
+    int8_t b = random(0, 255);
+  
+    matrix.drawPixel(ranx_top, y, matrix.Color(r, g, b));
+    matrix.drawPixel(ranx_bot, y + HEIGHT - 1, matrix.Color(r, g, b));
+    matrix.show();
+  }
+  delay(100);
+  matrix.fillScreen(0);
+  
+ } 
+}
 
+
+
+void musicBar()
+{
+  for(int i = 0; i < WIDTH; i++)
+  {
+    int8_t len = random(0, 14);
+    matrix.drawLine(i, HEIGHT - 1, i, len, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
+    matrix.show();
+    delay(0);    
+  }
+}
+
+/*void colorTransitionLine()
+{
+  expandColor(0x8080);
+}*/
