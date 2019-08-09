@@ -163,7 +163,38 @@ void musicBar()
   }
 }
 
-/*void colorTransitionLine()
+void colorTransitionLine()
 {
-  expandColor(0x8080);
-}*/
+  int8_t delta_g = 4;
+  int8_t delta_b = 8;
+  int8_t delta_r = 2;
+  for(int i = 0; i < HEIGHT; i++)
+  {
+    int8_t count = 0;
+    //from green to blue
+    for(int j = 0; j < WIDTH; j++)
+    {
+      matrix.drawPixel(j, i, matrix.Color(0, 128 - j * delta_g, 0 + delta_b * j));
+      matrix.show();
+      if(j > WIDTH / 2)
+      {
+        matrix.drawPixel(count, i, matrix.Color(0, 0, 0));
+        matrix.show();
+        count++;
+      }
+    }
+    delay(30);
+    //from blue to purple
+    delta_b = 4;
+    for(int j = WIDTH - 1; j >= 0; j--)
+    {
+      matrix.drawPixel(j, i, matrix.Color(0 + delta_r * j, 0, 255 - delta_b * j));
+      matrix.show();
+      if(j < WIDTH / 2)
+      {
+        matrix.drawPixel(count, i, matrix.Color(0, 0, 0));
+        matrix.show();
+        count--;
+      }
+    } 
+}
