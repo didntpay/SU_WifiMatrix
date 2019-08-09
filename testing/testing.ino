@@ -36,7 +36,7 @@ void setup() {
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
   //matrix.setTextWrap(false);
-  matrix.setBrightness(10);
+  matrix.setBrightness(100);
   //matrix.setRotation(1);
   //matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
   //matrix.drawRGBBitmap(b)
@@ -78,12 +78,15 @@ void displayAllWhite()
   {
     for(int j = 0; j < 32; j++)
     {
-       matrix.drawPixel(j, i, matrix.Color(0, 0, 255));
+       matrix.drawPixel(j, i, matrix.Color(255, 255, 255));
     }
-    matrix.show();
-    delay(1000);
-    matrix.fillScreen(0);
+    
+    //matrix.fillScreen(0);
   }
+  matrix.show();
+  delay(200);
+  matrix.fillScreen(0);
+  matrix.show();
 }
 
 /*int start_loc = matrix.width();
@@ -92,7 +95,7 @@ bool client_connect;*/
 
 void loop() {
   displayAllWhite();
-  delay(1000);
+  //delay(1000);
   //matrix.drawPixel(1, 1, matrix.Color(255, 0, 0));
   //matrix.show();
   

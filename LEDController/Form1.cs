@@ -26,6 +26,11 @@ namespace LEDController
         public const byte CMD_AONE = 0x50;
         public const byte CMD_ATWO = 0x60;
         public const byte CMD_ATHREE = 0x70;
+        public const byte CMD_AFOUR = 0x80;
+        public const byte CMD_AFIVE = 0x90;
+        public const byte CMD_ASIX = 0x10;
+        public const byte CMD_ASEVEN = 0x20;
+        public const byte CMD_AEIGHT = 0x30;
 
 
         public struct header
@@ -182,6 +187,18 @@ namespace LEDController
                     break;
                 case "Animation 3":
                     mode = CMD_ATHREE;
+                    break;
+                case "Animation 4":
+                    mode = CMD_AFOUR;
+                    break;
+                case "Animation 5":
+                    mode = CMD_AFIVE;
+                    break;
+                case "Animation 6":
+                    mode = CMD_ASIX;
+                    break;
+                case "Animation 7":
+                    mode = CMD_ASEVEN;
                     break;
                 case "Sleep mode":
                     break;

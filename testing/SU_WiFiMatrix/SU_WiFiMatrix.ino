@@ -1,10 +1,8 @@
-#include <ESP8266WiFi.h>
-#include <EEPROM.h>
 #include "Animations.h"
 
 #define LEDOUTPUT D5
-#define wifiname   "jmw" //"SU-ECE-Lab" //change this when you are not at Seattle University3
-#define wifipass    "2067799939"//"B9fmvrfe"
+#define wifiname   "SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "B9fmvrfe" 
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -19,111 +17,20 @@
 #define FONT_WIDTH 6
 
 
-uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ZIGZAG;
+uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
 
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 10, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 16, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
 WiFiServer server(789);
-
-enum Mode:byte {DEFAULTMODE = 0x40, AONE = 0x50, ATWO = 0x60, ATHREE = 0x70, SLEEP = 0x00};
 WiFiClient tmpClient = server.available();
 bool client_connect;
 
-struct Body
-{
-  String message;
-  byte command;
-  byte panel_mode;
 
-  Body()
-  {
-    this->message = "";
-    this->command = 0x00;
-    this->panel_mode = DEFAULTMODE;
-  }
-  
-  Body(const char* mes, byte cmd, byte ledmode)
-  {
-    this->message = String(mes);
-    this->command = cmd;
-    this->panel_mode = ledmode;
-  }
-  
-  void writeToEEPROM()
-  {
-    byte buff[6];
-    for(int i = 0; i < 4; i++)
-    {
-      buff[i] = (char)message.charAt(i);
-    }
-    buff[4] = command;
-    buff[5] = panel_mode;
-
-    for(int i = 0 ; i < 6; i++)
-    {
-      EEPROM.write(i, buff[i]);
-    }
-    EEPROM.commit();
-    Serial.println("Saved data in Flash");
-  }
-
-  bool importFromEEPROM()
-  {
-    if(EEPROM.read(5) == 0)
-    {
-      this->message = "";
-      this->command = 0x00;
-      this->panel_mode = DEFAULTMODE;
-      return false;
-    }
-    else
-    {
-      for(int i = 0; i < 4; i++)
-      {
-        this->message += EEPROM.read(i);    
-      }
-      this->command = EEPROM.read(4);
-      this->panel_mode = EEPROM.read(5);
-      return true;
-    }
-  }
-};
-
-typedef struct Header
-{
-  byte datatype;
-  uint8_t len;
-  byte messageoption;
-  Header(byte dt, uint8_t Len)
-  {
-    this->datatype = dt;
-    this->len = Len; 
-   }
-   
-   bool checkForInterrupt()
-   {   
-      if(!tmpClient.connected())
-        return false;
-      
-      if(tmpClient.available())
-        return true;
-      else
-        return false; 
-      
-   }
-   
-   void checkForConnection()
-   {
-      if(tmpClient.connected())
-        return;
-        
-      tmpClient = server.available();
-   }
-}Software_Interrupt;
 
 Body socket_body;
 Header socket_header(0x00, 0);
 
-void setup() {
+void setup() 
+{
   Serial.begin(9600);
   EEPROM.begin(6);
   WiFi.begin(wifiname, wifipass);
@@ -145,11 +52,11 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
-  matrix.setBrightness(10);
+  matrix.setBrightness(50);
   matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b) 
 
 
-  }
+}
 
 bool displayText(int8_t x, int8_t y, String& message)
 {
@@ -239,53 +146,54 @@ void receiveData()//string for now, later, implement body to hold different valu
   }
 }
 
-void delayAndCheck(uint8_t interval)//ms
-{
-    unsigned long timeout = millis();
-    while((millis() - timeout) < interval)
-    {
-      if(socket_header.checkForInterrupt())
-      {
-        matrix.fillScreen(0);
-        receiveData();
-      }              
-    }
-}
+
 
 void playAnimation(uint8_t index, int8_t startx, int8_t starty)
 {
   //matrix.fillScreen(0);
   byte* animation = (byte*)animation_table[index];
-  int8_t dimension = sizeof(animation) / sizeof(byte);
+  int8_t dimension = 121;
+  //Serial.println(*animation, HEX);
+  //Serial.println(*(&snowflakes[0]), HEX);
   int8_t width = sqrt(dimension);
   Serial.println("Printing animation");
   for(int i = 0; i < dimension; i++)
   {
-    matrix.drawPixel(startx + i % width, starty + i / width, matrix.Color(255, 255, 255));
+    matrix.drawPixel(startx + i % width, starty + i / width, getColor(snowflakes[i]));
     if(i % width ==0)
       delay(10);
   }
   matrix.show();
 }
 
+uint16_t getColor(byte value)
+{
+  if(value > 0)
+    return matrix.Color(255, 255, 255);
+
+  return matrix.Color(0, 0, 0);
+}
+
 //dropping snowflakes at 3 divided section
 void dropSnowFlakes()
 {
-  int8_t ranx_left = random(0, 12);
-  int8_t ranx_center = random(12, 24);
-  int8_t ranx_right = random(24, 32);
+  int8_t ranx_left = random(0, 5);
+  int8_t ranx_center = random(12, 18);
+  int8_t ranx_right = random(24, 29);
 
-  int8_t rany_left = random(0, 16);
-  int8_t rany_center = random(0, 16);
-  int8_t rany_right = random(0, 16);
+  int8_t rany_left = random(-10, 5);
+  int8_t rany_center = random(-10, 5);
+  int8_t rany_right = random(-10, 5);
   
   for(int i = 0; i < HEIGHT; i++)
   {
     playAnimation(0, ranx_left, rany_left + i);
     playAnimation(0, ranx_center, rany_center + i);
-    playAnimation(0, ranx_left, rany_right + i);
+    playAnimation(0, ranx_right, rany_right + i);
 
-    delay(300);
+    delayAndCheck(300);
+
+    matrix.fillScreen(0);
   }
 }
 
@@ -333,21 +241,20 @@ void loop() {
     }
     tmpClient = server.available();
   }
-  
-  if(socket_body.panel_mode == DEFAULTMODE)
+
+  switch(socket_body.panel_mode)
   {
-      /*for(int i = 0; i < 8; i++)
-      {
-        playAnimation(0, i, 1);
-        delay(500);
-      }*/
-      String defaultmessage = "YO";
-      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
-  }
-  else if(socket_body.panel_mode == AONE)
-  {
-      String defaultmessage = "HE";
-      scrollingText(defaultmessage, WIDTH, 0, -WIDTH, 0);
+    case DEFAULTMODE:
+      dropSnowFlakes();
+      break;
+    case AONE:
+      fadingRect(0, 0, 31, 15);
+      break;
+    case ATWO:
+      zigZagTraverse();
+      break;
+    case ATHREE:
+      flashingCircle(WIDTH, HEIGHT);
   }
   
   
