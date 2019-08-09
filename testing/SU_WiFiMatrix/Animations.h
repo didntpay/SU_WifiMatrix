@@ -11,7 +11,7 @@
 
 
 
-enum Mode:byte {DEFAULTMODE = 0x40, AONE = 0x50, ATWO = 0x60, ATHREE = 0x70, SLEEP = 0x00};
+enum Mode:byte {DEFAULTMODE = 0x40, AONE = 0x50, ATWO = 0x60, ATHREE = 0x70, AFOUR = 0x80, AFIVE = 0x90, CMD_ASIX = 0x10, CMD_ASEVEN = 0x20, SLEEP = 0x00};
 extern WiFiClient tmpClient;
 extern WiFiServer server;
 
@@ -178,7 +178,7 @@ void flashingCircle(int8_t maxx, int8_t maxy)
     
   }
   matrix.show();
-  delayAndCheck(2000);
+  delayAndCheck(1000);
   matrix.fillScreen(0);
 }
 
@@ -205,18 +205,18 @@ void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length, int8_t d
   {
     matrix.drawLine(i + startx, starty, i + startx + step_length, starty, matrix.Color(255, 0, 0));
     matrix.show();
-    delay(10);
+    delayAndCheck(10);
   }
-
+  
   startx += horizon_length;
   //upward diagonally line
   for(int i = 0; i < dia_length; i += step_length)
   {
     int8_t tmp_x = startx + i;
-    int8_t tmp_y = starty + i;
+    int8_t tmp_y = starty - i;
     matrix.drawLine(tmp_x, tmp_y, tmp_x + step_length, tmp_y + step_length, matrix.Color(255, 0, 0));
     matrix.show();
-    delay(10);
+    delayAndCheck(10);
   }
 
   startx += dia_length;
@@ -226,10 +226,10 @@ void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length, int8_t d
   for(int i = 0; i < dia_length; i += step_length)
   {
     int8_t tmp_x = startx - i;
-    int8_t tmp_y = starty - i;
+    int8_t tmp_y = starty + i;
     matrix.drawLine(tmp_x, tmp_y, tmp_x - step_length, tmp_y - step_length, matrix.Color(255, 0, 0));
     matrix.show();
-    delay(10);
+    delayAndCheck(10);
   }
 
   startx += dia_length;
@@ -240,7 +240,7 @@ void bpmSimulation(int8_t startx, int8_t starty, int8_t horizon_length, int8_t d
   {
     matrix.drawLine(i + startx, starty, i + startx + step_length, starty, matrix.Color(255, 0, 0));
     matrix.show();
-    delay(10);
+    delayAndCheck(10);
   }
   
 }
@@ -276,7 +276,7 @@ void musicBar()
     int8_t len = random(0, 14);
     matrix.drawLine(i, HEIGHT - 1, i, len, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
     matrix.show();
-    delay(0);    
+    delayAndCheck(10);
   }
 }
 

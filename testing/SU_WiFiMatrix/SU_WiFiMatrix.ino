@@ -255,6 +255,9 @@ void loop() {
       break;
     case ATHREE:
       flashingCircle(WIDTH, HEIGHT);
+      break;
+    case AFOUR:
+      musicBar();
   }
   
   
