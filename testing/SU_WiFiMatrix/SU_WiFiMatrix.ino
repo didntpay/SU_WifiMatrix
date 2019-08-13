@@ -1,8 +1,8 @@
 #include "Animations.h"
 
 #define LEDOUTPUT D5
-#define wifiname   "SU-ECE-Lab" //change this when you are not at Seattle University
-#define wifipass   "B9fmvrfe" 
+#define wifiname   "jmw"//"SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "2067799939"//"B9fmvrfe" 
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -16,7 +16,7 @@
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
 
-
+#define TOTAL_ANIMATION 8
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 16, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
@@ -28,6 +28,7 @@ bool client_connect;
 
 Body socket_body;
 Header socket_header(0x00, 0);
+void (*animations[8])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeRandomLine, musicBar, colorTransitionLine, breathEffect,dropSnowFlakes};
 
 void setup() 
 {
@@ -52,20 +53,18 @@ void setup()
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
-  matrix.setBrightness(50);
-  matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b) 
-
+  matrix.setBrightness(10);
 
 }
 
-bool displayText(int8_t x, int8_t y, String& message)
+bool displayText(int8_t x, int8_t y, String& message, uint16_t color)
 {
   matrix.fillScreen(0);
-  matrix.fillScreen(0);
+  matrix.setTextColor(color);
   matrix.setCursor(x, y);
   matrix.print(message);
   matrix.show();
-  unsigned long timeout = millis();
+  /*unsigned long timeout = millis();
   while((millis() - timeout) < 200)
   {
     socket_header.checkForConnection();
@@ -75,12 +74,12 @@ bool displayText(int8_t x, int8_t y, String& message)
       return true;
     }
                   
-  }
+  }*/
   delay(0);
   return false;
 }
 
-void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy)
+/*void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy)
 {
     matrix.fillScreen(0);//clear the screen
     matrix.setTextWrap(false);
@@ -88,6 +87,7 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
     {
         Serial.println("Printing horizontally");
         int8_t multiplier = 1;
+        //determine if it is left to right or right to left
         if(startx > endx)
           multiplier = 1;
         else
@@ -104,6 +104,7 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
     {
        Serial.println("Printing vertically");
        int8_t multiplier = 1;
+       //determine if it is up to bottom or bottom to top.
         if(starty > endy)
           multiplier = 1;
         else
@@ -114,7 +115,7 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
             return;  
         }
     }
-}
+}*/
 
 
 
@@ -191,12 +192,12 @@ void dropSnowFlakes()
     playAnimation(0, ranx_center, rany_center + i);
     playAnimation(0, ranx_right, rany_right + i);
 
-    delayAndCheck(300);
+    delayAndCheck(200);
 
     matrix.fillScreen(0);
   }
 }
-
+int num = 0;
 void loop() {
   //Serial.println(socket_body.panel_mode, HEX);
   
@@ -242,22 +243,53 @@ void loop() {
     tmpClient = server.available();
   }
 
+
+  long timer = millis();
   switch(socket_body.panel_mode)
   {
+    //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
-      dropSnowFlakes();
+      while(millis() - timer < 30000)
+      {
+        (*animations[num])();
+        if(socket_body.panel_mode != DEFAULTMODE)
+          break;
+        delay(0);
+      }
+      num++;
+      if(num == TOTAL_ANIMATION)
+        num = 0;
       break;
     case AONE:
-      fadingRect(0, 0, 31, 15);
+      fadingRect();
       break;
     case ATWO:
       zigZagTraverse();
       break;
     case ATHREE:
-      flashingCircle(WIDTH, HEIGHT);
+      flashingCircle();
       break;
     case AFOUR:
       musicBar();
+      break;
+    case AFIVE:
+      oppositeRandomLine();
+      break;
+    case ASIX:
+      colorTransitionLine();
+      break;
+    case ASEVEN:
+      breathEffect();
+      break;
+    case AEIGHT:
+      screenBomb();
+      break;
+    case  ANINE:
+      backAndForth();
+      break;
+    case ATEN:
+      flashingWord();
+      break;
   }
   
   

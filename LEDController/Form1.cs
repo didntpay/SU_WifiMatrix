@@ -31,7 +31,8 @@ namespace LEDController
         public const byte CMD_ASIX = 0x10;
         public const byte CMD_ASEVEN = 0x20;
         public const byte CMD_AEIGHT = 0x30;
-
+        public const byte CMD_ANINE = 0xA0;
+        public const byte CMD_ATEN = 0xB0;
 
         public struct header
         {
@@ -88,6 +89,8 @@ namespace LEDController
                     ledconnection = null;
                 }
             }
+            //get it out of the way after it is connected
+            connectionPanel.Visible = false;
         }
 
         private void isIPValid()//implement this later and run before connect.
@@ -135,9 +138,6 @@ namespace LEDController
                 }
                 catch (SocketException se)
                 {
-                    debug.Text += se.Message + "\n";
-                    debug.Text += "Inner exception: " + se.InnerException.Message + "\n"; 
-                    debug.Text += se.StackTrace;
                 }
             }
 
@@ -200,6 +200,15 @@ namespace LEDController
                 case "Animation 7":
                     mode = CMD_ASEVEN;
                     break;
+                case "Animation 8":
+                    mode = CMD_AEIGHT;
+                    break;
+                case "Animation 9":
+                    mode = CMD_ANINE;
+                    break;
+                case "Animation 10":
+                    mode = CMD_ATEN;
+                    break;
                 case "Sleep mode":
                     break;
             }
@@ -234,6 +243,20 @@ namespace LEDController
                 }
 
             }
+        }
+
+        private void connectionPanel_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                connectionPanel.BringToFront();
+                connectionPanel.Location = new System.Drawing.Point(Cursor.Position.X - 80 , Cursor.Position.Y - 80);
+            }
+        }
+
+        private void Mainclose_Click(object sender, EventArgs e)
+        {
+            this.Close();
         }
     }
 }

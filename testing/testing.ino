@@ -9,6 +9,8 @@
 #define wifipass  "2067799939"//"B9fmvrfe"
 
 #define COLOR_INCREAMENT 0.3
+#define HEIGHT 16
+#define WIDTH 32
 
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 16, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
@@ -94,7 +96,10 @@ WiFiClient tmpClient = server.available();
 bool client_connect;*/
 
 void loop() {
-  displayAllWhite();
+  matrix.drawPixel(0, 2, matrix.Color(255,255,255));
+  matrix.show();
+  Serial.println(matrix.getPixelColor((HEIGHT - 14) * WIDTH));
+  //displayAllWhite();
   //delay(1000);
   //matrix.drawPixel(1, 1, matrix.Color(255, 0, 0));
   //matrix.show();
