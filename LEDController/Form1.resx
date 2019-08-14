@@ -132,9 +132,6 @@
   <metadata name="panel3.Locked" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
-  <metadata name="panel3.Locked" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>True</value>
-  </metadata>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="connectionClose.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -145,6 +142,46 @@
 </value>
   </data>
   <data name="mainclose.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO
+        ABAMQ91ll3dLFipZ6Ajxw9IPqi+zhShyoPewVMo6nkkwrYlT1X8SqZLDaWBUZDZkW3WvVXwlIBxGdakb
+        sluzIWVyuA8kwazjmXwlS/2LiWTO+Ynrj8T1ZgAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="deletemessage1.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO
+        ABAMQ91ll3dLFipZ6Ajxw9IPqi+zhShyoPewVMo6nkkwrYlT1X8SqZLDaWBUZDZkW3WvVXwlIBxGdakb
+        sluzIWVyuA8kwazjmXwlS/2LiWTO+Ynrj8T1ZgAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="deletemessage2.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO
+        ABAMQ91ll3dLFipZ6Ajxw9IPqi+zhShyoPewVMo6nkkwrYlT1X8SqZLDaWBUZDZkW3WvVXwlIBxGdakb
+        sluzIWVyuA8kwazjmXwlS/2LiWTO+Ynrj8T1ZgAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="deletemessage3.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO
+        ABAMQ91ll3dLFipZ6Ajxw9IPqi+zhShyoPewVMo6nkkwrYlT1X8SqZLDaWBUZDZkW3WvVXwlIBxGdakb
+        sluzIWVyuA8kwazjmXwlS/2LiWTO+Ynrj8T1ZgAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="deletemessage4.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO
+        ABAMQ91ll3dLFipZ6Ajxw9IPqi+zhShyoPewVMo6nkkwrYlT1X8SqZLDaWBUZDZkW3WvVXwlIBxGdakb
+        sluzIWVyuA8kwazjmXwlS/2LiWTO+Ynrj8T1ZgAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="deletemessage5.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAIAAADZrBkAAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
         wwAADsMBx2+oZAAAABh0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMS42/U4J6AAAAFpJREFUOE/dkFEO

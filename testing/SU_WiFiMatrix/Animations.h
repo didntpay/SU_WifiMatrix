@@ -11,8 +11,8 @@
 #define DEFAULT_BRIGHTNESS 50
 
 
-enum Mode:byte {DEFAULTMODE = 0x40, AONE = 0x50, ATWO = 0x60, ATHREE = 0x70, AFOUR = 0x80, AFIVE = 0x90, 
-                ASIX = 0x10, ASEVEN = 0x20, SLEEP = 0x00, AEIGHT = 0x30, ANINE = 0xA0, ATEN = 0xB0};
+enum Mode:byte {DEFAULTMODE = 0x40, FADINGRECT = 0x50, FLASHINGCIR = 0x60, ZIGZAGTRAVERSE = 0x70, BACKANDFORTH = 0x80, FLASHINGWORD = 0x90, 
+                BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0};
 extern WiFiClient tmpClient;
 extern WiFiServer server;
 
@@ -27,66 +27,6 @@ void oppositeRandomLine();
 void fewRandomLine(int8_t y, int8_t lines);
 bool displayText(int8_t x, int8_t y, String& message, uint16_t color);
 void screenBomb();
-
-struct Body
-{
-  String message;
-  byte command;
-  byte panel_mode;
-
-  Body()
-  {
-    this->message = "";
-    this->command = 0x00;
-    this->panel_mode = DEFAULTMODE;
-  }
-  
-  Body(const char* mes, byte cmd, byte ledmode)
-  {
-    this->message = String(mes);
-    this->command = cmd;
-    this->panel_mode = ledmode;
-  }
-  
-  void writeToEEPROM()
-  {
-    byte buff[6];
-    for(int i = 0; i < 4; i++)
-    {
-      buff[i] = (char)message.charAt(i);
-    }
-    buff[4] = command;
-    buff[5] = panel_mode;
-
-    for(int i = 0 ; i < 6; i++)
-    {
-      EEPROM.write(i, buff[i]);
-    }
-    EEPROM.commit();
-    Serial.println("Saved data in Flash");
-  }
-
-  bool importFromEEPROM()
-  {
-    if(EEPROM.read(5) == 0)
-    {
-      this->message = "";
-      this->command = 0x00;
-      this->panel_mode = DEFAULTMODE;
-      return false;
-    }
-    else
-    {
-      for(int i = 0; i < 4; i++)
-      {
-        this->message += EEPROM.read(i);    
-      }
-      this->command = EEPROM.read(4);
-      this->panel_mode = EEPROM.read(5);
-      return true;
-    }
-  }
-};
 
 typedef struct Header
 {
@@ -120,8 +60,90 @@ typedef struct Header
    }
 }Software_Interrupt;
 
-extern Adafruit_NeoMatrix matrix;
 extern Header socket_header;
+
+struct Body
+{
+  String message[5];
+  byte command;
+  byte panel_mode;
+
+  Body()
+  {
+    for(int i = 0; i < 5; i++)
+    {
+      message[i] = " ";
+    }
+    this->command = 0x00;
+    this->panel_mode = DEFAULTMODE;
+  }
+  
+  Body(const char* mes, byte cmd, byte ledmode)
+  {
+    //this->message = String(mes);
+    this->command = cmd;
+    this->panel_mode = ledmode;
+  }
+  
+  void writeToEEPROM()
+  {
+    byte buff[socket_header.len + 2];
+    int index = 0;
+    for(int i = 0; i < socket_header.len; i++)
+    {
+      buff[i] = (char)message[index].charAt(i);
+      if(i == message[index].length())
+      {
+        index++;
+        buff[i + 1] = 0xFF;//the spliter between strings
+        i++;
+      }
+    }
+    buff[socket_header.len] = command;
+    buff[socket_header.len + 1] = panel_mode;
+
+    for(int i = 0 ; i < socket_header.len + 2; i++)
+    {
+      EEPROM.write(i, buff[i]);
+    }
+    EEPROM.commit();
+    Serial.println("Saved data in Flash");
+  }
+
+  bool importFromEEPROM()
+  {
+    if(EEPROM.read(socket_header.len + 1) == 0)
+    {
+      //this->message = "";
+      this->command = 0x00;
+      this->panel_mode = DEFAULTMODE;
+      return false;
+    }
+    else
+    {
+      int index = 0;
+      for(int i = 0; i < socket_header.len; i++)
+      {
+        char value = EEPROM.read(i);
+        if(value == 0xFF)
+        {
+          index++;
+        }
+        else
+        {
+          this->message[index] += value;
+        }
+      }
+      this->command = EEPROM.read(socket_header.len);
+      this->panel_mode = EEPROM.read(socket_header.len + 1);
+      return true;
+    }
+  }
+};
+
+
+
+extern Adafruit_NeoMatrix matrix;
 
 const int heart[] = {       // Heart bitmap
   0, 1, 1, 0, 1, 1, 0, 0,
@@ -250,7 +272,8 @@ void backAndForth()
         color = matrix.Color(r + count * 18.8, g, b);
         
       matrix.show();
-      delayAndCheck(100);
+      if(delayAndCheck(100))
+        return;
       if(j != 0)
       {
         //delete the last line

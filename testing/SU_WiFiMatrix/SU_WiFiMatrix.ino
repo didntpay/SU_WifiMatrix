@@ -1,8 +1,8 @@
 #include "Animations.h"
 
 #define LEDOUTPUT D5
-#define wifiname   "jmw"//"SU-ECE-Lab" //change this when you are not at Seattle University
-#define wifipass   "2067799939"//"B9fmvrfe" 
+#define wifiname   "iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "if1else2"//"B9fmvrfe" //
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -79,7 +79,7 @@ bool displayText(int8_t x, int8_t y, String& message, uint16_t color)
   return false;
 }
 
-/*void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy)
+void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy, uint16_t color)
 {
     matrix.fillScreen(0);//clear the screen
     matrix.setTextWrap(false);
@@ -94,9 +94,10 @@ bool displayText(int8_t x, int8_t y, String& message, uint16_t color)
           multiplier = -1;
         for(int8_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally 
         {         
-          if(displayText(i, 0, message))
+          if(displayText(i, 0, message, color))
             return;
           //delay(100);
+          delayAndCheck(200);
         }
         Serial.println(message);
     }
@@ -111,13 +112,20 @@ bool displayText(int8_t x, int8_t y, String& message, uint16_t color)
           multiplier = -1;
         for(int8_t i = starty; i > multiplier * endy; starty > endy ?i-- : i++)//scrolling horizontally right to left
         {
-          if(displayText(0, i, message))
+          if(displayText(0, i, message, color))
             return;  
+          delayAndCheck(200);
         }
     }
-}*/
+}
 
-
+void zeroArray(String target[])
+{
+  for(int i = 0; i < sizeof(target) / sizeof(String); i++)
+  {
+    target[i] = " ";
+  }
+}
 
 void receiveData()//string for now, later, implement body to hold different values
 {
@@ -125,19 +133,33 @@ void receiveData()//string for now, later, implement body to hold different valu
   {  
       Serial.println("Now receiving data...");
       // first read the header: 2 byte, one of them is a char
-      socket_header.datatype = tmpClient.read();
+      socket_header.datatype = tmpClient.read();      
       socket_header.len = (char)tmpClient.read();
+      Serial.println(socket_header.len);
       if(socket_header.datatype == DATA_MESSAGE)
       {
-          Serial.println("Receiving message");
+          zeroArray(socket_body.message);
           socket_header.messageoption = tmpClient.read();
-          socket_body.message = "";
+          
+          int8_t index = 0;
+          
           for(int i = 0; i < socket_header.len; i++)
           {
-            socket_body.message += char(tmpClient.read());
+            char value = tmpClient.read();
+            if(value == 0xFF)
+            {
+              Serial.println(socket_body.message[index]);
+              Serial.println(index);
+              index++;
+            }
+            else
+            {
+              socket_body.message[index] += value;
+              delay(10);
+            }
           }
       }
-      else//DATA_CMD
+      else if(socket_header.datatype == DATA_CMD) //DATA_CMD
       {
           Serial.println("New mode!");
           socket_body.panel_mode = tmpClient.read();
@@ -198,6 +220,7 @@ void dropSnowFlakes()
   }
 }
 int num = 0;
+uint8_t mesg_index = 0;
 void loop() {
   //Serial.println(socket_body.panel_mode, HEX);
   
@@ -249,45 +272,57 @@ void loop() {
   {
     //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
+      Serial.println(socket_body.message[mesg_index]);
       while(millis() - timer < 30000)
       {
         (*animations[num])();
         if(socket_body.panel_mode != DEFAULTMODE)
           break;
-        delay(0);
+        
+        if(!socket_body.message[mesg_index].equals(" "))
+          scrollingText(socket_body.message[mesg_index], WIDTH, 0, -WIDTH, 0, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
+        
+        delay(100);
       }
       num++;
       if(num == TOTAL_ANIMATION)
         num = 0;
+      
+      mesg_index++;
+      if(mesg_index > 4)
+      {
+        mesg_index = 0;
+      }
+      
       break;
-    case AONE:
+    case FADINGRECT:
       fadingRect();
       break;
-    case ATWO:
+    case ZIGZAGTRAVERSE:
       zigZagTraverse();
       break;
-    case ATHREE:
+    case FLASHINGCIR:
       flashingCircle();
       break;
-    case AFOUR:
+    case MUSICBAR:
       musicBar();
       break;
-    case AFIVE:
+    case OPPOSITERANDOMLINE:
       oppositeRandomLine();
       break;
-    case ASIX:
+    case COLORTRANSITION:
       colorTransitionLine();
       break;
-    case ASEVEN:
+    case BREATHEFFECT:
       breathEffect();
       break;
-    case AEIGHT:
+    case SCREENBOMB:
       screenBomb();
       break;
-    case  ANINE:
+    case  BACKANDFORTH:
       backAndForth();
       break;
-    case ATEN:
+    case FLASHINGWORD:
       flashingWord();
       break;
   }

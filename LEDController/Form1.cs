@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Drawing;
+using System.IO;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
@@ -68,6 +71,13 @@ namespace LEDController
 
         private void connect_Click(object sender, EventArgs e)
         {
+            if (!isIPValid())
+            {
+                MessageBox.Show("Invalid IP address or it isn't a local IP address", 
+                                "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             String targetip = TargetIp.Text;
             int portnum = Convert.ToInt32(Port_Num.Text);
             ledconnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -75,43 +85,110 @@ namespace LEDController
             {
                 endConnection(ref ledconnection);
                 //log it, and tell user to try again.
+                MessageBox.Show("Disconnected with the previous device, try again", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             else
             {
-                try
+                Ping pingsender = new Ping();
+                PingReply reply = pingsender.Send(IPAddress.Parse(targetip), 3000);
+                if (reply.Status == IPStatus.Success)
                 {
-                    IPEndPoint tmpEP = new IPEndPoint(IPAddress.Parse(targetip), portnum);
-                    ledconnection.Connect(tmpEP);
+                    try
+                    {
+                        IPEndPoint tmpEP = new IPEndPoint(IPAddress.Parse(targetip), portnum);
+                        ledconnection.Connect(tmpEP);
+                        connectionPanel.Visible = false;
+                        connstatus.Text = "Connected";
+                        remoteip.Text = "Connected IP\n  " + ledconnection.RemoteEndPoint.ToString();
 
+                    }
+                    catch (SocketException se)
+                    {
+                        ledconnection = null;
+
+                    }
                 }
-                catch (SocketException se)
+                else
                 {
-                    ledconnection = null;
+                    MessageBox.Show("Connection time out, try again", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             //get it out of the way after it is connected
-            connectionPanel.Visible = false;
+            
         }
 
-        private void isIPValid()//implement this later and run before connect.
+        private bool isIPValid()//implement this later and run before connect.
         {
+            string ip = TargetIp.Text;
+            string[] tmp = ip.Split('.');
+            if (tmp.Length < 4)
+            {
+                return false;
+            }
+            else
+            {
+                IPHostEntry entry = Dns.GetHostEntry(Dns.GetHostName());
+                foreach (IPAddress address in entry.AddressList)
+                {
+                    if (address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        string localip = address.ToString();
+                        string[] localipfrag = localip.Split('.');
+                        int count = 0;
+                        for (int i = 0; i < 3; i++)
+                        {
+                            if (localipfrag[i].Equals(tmp[i]))
+                                count++;
+                        }
+                        return count == 3;
+                    }
+                }
+            }
+            return false;
 
         }
 
         private void send(ref Socket connection, String mes, byte datatype)
         {
+            TextBox[] textlist = { messageinput1, messageinput2, messageinput3, messageinput4, messageinput5 };
+            
+            //length of the header struct
             int headerlength = 3;
-            byte[] buffer = new byte[mes.Length + headerlength];
-            byte[] tmp = socket_header.toBytes();
-            for (int i = 0; i < tmp.Length; i++)
+            byte[] messagelist_byte = new byte[textlist[0].Text.Length + textlist[1].Text.Length
+                                    + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 5];
+            byte[] buffer = new byte[messagelist_byte.Length + headerlength + 5];
+            byte[] header_byte = socket_header.toBytes();
+            string[] messagelist = new string[5];
+            
+            int index = 0;
+            for (int i = 0; i < 5; i++)
             {
-                buffer[i] = tmp[i];
+                messagelist[i] = textlist[i].Text;
+
+                if (i != 0)
+                {
+                    messagelist_byte[index] = 0xFF;
+                    index++;
+                }
+
+                foreach (char x in messagelist[i])
+                {
+                    messagelist_byte[index] = (byte)x;
+                    index++;
+                }
+                
             }
 
-            byte[] temp = Encoding.ASCII.GetBytes(mes);
-            for (int i = headerlength; i < mes.Length + headerlength; i++)
+            for (int i = 0; i < header_byte.Length; i++)
             {
-                buffer[i] = temp[i - headerlength];
+                buffer[i] = header_byte[i];
+            }
+
+            
+
+            for (int i = headerlength; i < messagelist_byte.Length + headerlength; i++)
+            {
+                buffer[i] = messagelist_byte[i - headerlength];
             }
             connection.Send(buffer, SocketFlags.None);
         }
@@ -128,18 +205,21 @@ namespace LEDController
         {
             if (ledconnection == null || ledconnection.Connected == false)
                 return;
-            if (messageinput.Text.Length < 129)
+            TextBox[] textlist = { messageinput1, messageinput2, messageinput3, messageinput4, messageinput5 };
+
+            try
             {
-                try
-                {
-                    socket_header.length = (char)messageinput.Text.Length;
-                    socket_header.datatype = DATA_MESSAGE;
-                    send(ref ledconnection, messageinput.Text, DATA_MESSAGE);
-                }
-                catch (SocketException se)
-                {
-                }
+                socket_header.length = (char)(textlist[0].Text.Length + textlist[1].Text.Length
+                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 5);
+                socket_header.datatype = DATA_MESSAGE;
+                //to put save all the messages locally
+                updateMessageFile();
+                send(ref ledconnection, messageinput1.Text, DATA_MESSAGE);
             }
+            catch (SocketException se)
+            {
+            }
+            
 
         }
 
@@ -245,6 +325,30 @@ namespace LEDController
             }
         }
 
+        private void updateMessageFile()
+        {
+            string path = "./message.txt";
+            if (!File.Exists(path))
+                File.CreateText(path);
+            string[] tobeupdate = new string[5];
+            using (StreamReader sr = File.OpenText(path))
+            {
+                string line;
+                int index = 0;
+                TextBox[] messagelist = { messageinput1, messageinput2, messageinput3, messageinput4, messageinput5 };
+                while ((line = sr.ReadLine()) != null)
+                {
+                    if (!line.Equals(messagelist[index].Text))
+                    {
+                        line = messagelist[index].Text;
+                    }
+                    tobeupdate[index] = line;
+                    index++;
+                }
+            }
+
+            File.WriteAllLines(path, tobeupdate);
+        }
         private void connectionPanel_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -257,6 +361,144 @@ namespace LEDController
         private void Mainclose_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        #region Message inputs
+        private void Messageinput1_TextChanged(object sender, EventArgs e)
+        {
+            messageinput1.TextAlign = HorizontalAlignment.Center;
+        }
+
+        private void Messageinput2_TextChanged(object sender, EventArgs e)
+        {
+            messageinput2.TextAlign = HorizontalAlignment.Center;
+        }
+
+        private void Messageinput3_TextChanged(object sender, EventArgs e)
+        {
+            messageinput3.TextAlign = HorizontalAlignment.Center;
+        }
+
+        private void Messageinput4_TextChanged(object sender, EventArgs e)
+        {
+            messageinput4.TextAlign = HorizontalAlignment.Center;
+        }
+
+        private void Messageinput5_TextChanged(object sender, EventArgs e)
+        {
+            messageinput5.TextAlign = HorizontalAlignment.Center;
+        }
+
+        private void Deletemessage1_Click(object sender, EventArgs e)
+        {
+            messageinput1.Clear();
+            messageinput1.Text = "Message 1";
+            updateMessageFile();
+        }
+
+        private void Deletemessage2_Click(object sender, EventArgs e)
+        {
+            messageinput2.Clear();
+            messageinput2.Text = "Message 2";
+            updateMessageFile();
+        }
+
+        private void Deletemessage3_Click(object sender, EventArgs e)
+        {
+            messageinput3.Clear();
+            messageinput3.Text = "Message 3";
+            updateMessageFile();
+        }
+
+        private void Deletemessage4_Click(object sender, EventArgs e)
+        {
+            messageinput4.Clear();
+            messageinput4.Text = "Message 4";
+            updateMessageFile();
+        }
+
+        private void Deletemessage5_Click(object sender, EventArgs e)
+        {
+            messageinput5.Clear();
+            messageinput5.Text = "Message 5";
+            updateMessageFile();
+        }
+
+
+        #endregion
+
+        private void setAnimation_Click(object sender, EventArgs e)
+        {
+            animationsetting.Visible = true;
+            addMessage.Size = new Size(173, 35);
+            setanimation.Size = new Size(173, 40);
+            setanimation.Location = new Point(280, 38);
+            addMessage.Location = new Point(105, 40);
+            addMessage.BringToFront();
+            setanimation.BringToFront();
+        }
+
+        private void AddMessage_Click(object sender, EventArgs e)
+        {
+            animationsetting.Visible = false;
+            addMessage.Size = new Size(168, 40);
+            addMessage.Location = new Point(107, 38);
+            setanimation.Location = new Point(280, 40);
+            setanimation.Size = new Size(168, 35);
+            addMessage.BringToFront();
+            setanimation.BringToFront();
+        }
+
+        private void Cmd_Click(object sender, EventArgs e)
+        {
+            if (ledconnection == null || !ledconnection.Connected)
+                return;
+
+            socket_header.length = (char)0;
+            socket_header.datatype = DATA_CMD;
+            byte[] header = socket_header.toBytes();
+            byte[] buffer = new byte[3];
+            byte mode = CMD_DEFAULT;
+            switch (modeoption2.SelectedItem.ToString())
+            {
+                case "Default mode":
+                    mode = CMD_DEFAULT;
+                    break;
+                case "Fading Rectangle":
+                    mode = CMD_AONE;
+                    break;
+                case "Flashing Cicle":
+                    mode = CMD_ATWO;
+                    break;
+                case "ZigZag Traverse":
+                    mode = CMD_ATHREE;
+                    break;
+                case "Back And Forth":
+                    mode = CMD_AFOUR;
+                    break;
+                case "Flashing Word":
+                    mode = CMD_AFIVE;
+                    break;
+                case "Breath Effect":
+                    mode = CMD_ASIX;
+                    break;
+                case "Opposite Random Line":
+                    mode = CMD_ASEVEN;
+                    break;
+                case "Music Bar":
+                    mode = CMD_AEIGHT;
+                    break;
+                case "Color Transition Line":
+                    mode = CMD_ANINE;
+                    break;
+                case "Screen Bomb":
+                    mode = CMD_ATEN;
+                    break;
+            }
+            buffer[0] = header[0];
+            buffer[1] = header[1];
+            buffer[2] = mode;
+            ledconnection.Send(buffer, SocketFlags.None);
         }
     }
 }
