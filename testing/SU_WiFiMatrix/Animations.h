@@ -89,30 +89,41 @@ struct Body
   {
     byte buff[socket_header.len + 2];
     int index = 0;
+    int16_t decreament = 0;
     for(int i = 0; i < socket_header.len; i++)
-    {
-      buff[i] = (char)message[index].charAt(i);
-      if(i == message[index].length())
+    {      
+      if((i - decreament) == message[index].length())
       {
+        decreament += message[index].length() + 1;
         index++;
-        buff[i + 1] = 0xFF;//the spliter between strings
-        i++;
+        buff[i] = 0xFF;//the spliter between strings        
+      }
+      else
+      {
+        buff[i] = message[index].charAt(i - decreament);
       }
     }
     buff[socket_header.len] = command;
     buff[socket_header.len + 1] = panel_mode;
 
+    for(int i = 0; i < socket_header.len + 2; i++)
+    {
+      Serial.println(buff[i]);
+    }
+
+    EEPROM.write(0, socket_header.len);
+    EEPROM.commit();
     for(int i = 0 ; i < socket_header.len + 2; i++)
     {
-      EEPROM.write(i, buff[i]);
-    }
-    EEPROM.commit();
+      EEPROM.write(i + 1, buff[i]);
+      EEPROM.commit();
+    }    
     Serial.println("Saved data in Flash");
   }
 
   bool importFromEEPROM()
   {
-    if(EEPROM.read(socket_header.len + 1) == 0)
+    if(EEPROM.read(socket_header.len + 2) == 0)
     {
       //this->message = "";
       this->command = 0x00;
@@ -122,20 +133,26 @@ struct Body
     else
     {
       int index = 0;
-      for(int i = 0; i < socket_header.len; i++)
+      uint8_t len = EEPROM.read(0);
+      Serial.println(len);
+      for(int i = 1; i <= len; i++)
       {
         char value = EEPROM.read(i);
+        Serial.println(EEPROM.read(i));
         if(value == 0xFF)
         {
-          index++;
+          Serial.println(this->message[index]);
+          index++;          
         }
         else
         {
           this->message[index] += value;
+          
         }
+        
       }
-      this->command = EEPROM.read(socket_header.len);
-      this->panel_mode = EEPROM.read(socket_header.len + 1);
+      this->command = EEPROM.read(socket_header.len + 1);//not using, just a place holder
+      this->panel_mode = EEPROM.read(socket_header.len + 2);
       return true;
     }
   }
@@ -412,7 +429,6 @@ void musicBar()
     if(delayAndCheck(10))
       return;
   }
-  //matrix.fillScreen(0);
 }
 
 void colorTransitionLine()
@@ -538,7 +554,7 @@ bool delayAndCheck(uint8_t interval)//ms
         matrix.fillScreen(0);
         receiveData();
         return true;
-      }              
+      }                
     }
     return false;
 }

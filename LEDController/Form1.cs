@@ -99,7 +99,7 @@ namespace LEDController
                         ledconnection.Connect(tmpEP);
                         connectionPanel.Visible = false;
                         connstatus.Text = "Connected";
-                        remoteip.Text = "Connected IP\n  " + ledconnection.RemoteEndPoint.ToString();
+                        remoteip.Text = "Connected IP\n" + ledconnection.RemoteEndPoint.ToString();
 
                     }
                     catch (SocketException se)
@@ -155,8 +155,8 @@ namespace LEDController
             //length of the header struct
             int headerlength = 3;
             byte[] messagelist_byte = new byte[textlist[0].Text.Length + textlist[1].Text.Length
-                                    + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 5];
-            byte[] buffer = new byte[messagelist_byte.Length + headerlength + 5];
+                                    + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 4];
+            byte[] buffer = new byte[messagelist_byte.Length + headerlength];
             byte[] header_byte = socket_header.toBytes();
             string[] messagelist = new string[5];
             
@@ -210,7 +210,7 @@ namespace LEDController
             try
             {
                 socket_header.length = (char)(textlist[0].Text.Length + textlist[1].Text.Length
-                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 5);
+                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 4);
                 socket_header.datatype = DATA_MESSAGE;
                 //to put save all the messages locally
                 updateMessageFile();
@@ -358,6 +358,14 @@ namespace LEDController
             }
         }
 
+        private void form_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                this.Location = new Point(Cursor.Position.X - 80, Cursor.Position.Y - 80);
+            }
+        }
+
         private void Mainclose_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -500,5 +508,6 @@ namespace LEDController
             buffer[2] = mode;
             ledconnection.Send(buffer, SocketFlags.None);
         }
+
     }
 }

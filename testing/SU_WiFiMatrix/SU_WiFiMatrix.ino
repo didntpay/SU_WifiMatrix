@@ -1,8 +1,8 @@
 #include "Animations.h"
 
 #define LEDOUTPUT D5
-#define wifiname   "iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
-#define wifipass   "if1else2"//"B9fmvrfe" //
+#define wifiname   "jmw"//"iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "2067799939"//"B9fmvrfe" //
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -119,9 +119,9 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
     }
 }
 
-void zeroArray(String target[])
+void zeroArray(String* target, int8_t len)
 {
-  for(int i = 0; i < sizeof(target) / sizeof(String); i++)
+  for(int i = 0; i < len; i++)
   {
     target[i] = " ";
   }
@@ -131,6 +131,7 @@ void receiveData()//string for now, later, implement body to hold different valu
 {
   if(tmpClient.available()) 
   {  
+      bool change_flag = false;
       Serial.println("Now receiving data...");
       // first read the header: 2 byte, one of them is a char
       socket_header.datatype = tmpClient.read();      
@@ -138,9 +139,9 @@ void receiveData()//string for now, later, implement body to hold different valu
       Serial.println(socket_header.len);
       if(socket_header.datatype == DATA_MESSAGE)
       {
-          zeroArray(socket_body.message);
+          zeroArray(socket_body.message, 5);
           socket_header.messageoption = tmpClient.read();
-          
+          change_flag = true;
           int8_t index = 0;
           
           for(int i = 0; i < socket_header.len; i++)
@@ -148,8 +149,8 @@ void receiveData()//string for now, later, implement body to hold different valu
             char value = tmpClient.read();
             if(value == 0xFF)
             {
-              Serial.println(socket_body.message[index]);
-              Serial.println(index);
+              //Serial.println(socket_body.message[index]);
+              //Serial.println(index);
               index++;
             }
             else
@@ -161,11 +162,13 @@ void receiveData()//string for now, later, implement body to hold different valu
       }
       else if(socket_header.datatype == DATA_CMD) //DATA_CMD
       {
+          change_flag = true;
           Serial.println("New mode!");
           socket_body.panel_mode = tmpClient.read();
           Serial.println(socket_body.panel_mode);
       }
-      socket_body.writeToEEPROM();
+      if(change_flag)
+        socket_body.writeToEEPROM();
   }
 }
 
@@ -272,7 +275,7 @@ void loop() {
   {
     //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
-      Serial.println(socket_body.message[mesg_index]);
+      //Serial.println(socket_body.message[mesg_index]);
       while(millis() - timer < 30000)
       {
         (*animations[num])();
@@ -283,6 +286,7 @@ void loop() {
           scrollingText(socket_body.message[mesg_index], WIDTH, 0, -WIDTH, 0, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
         
         delay(100);
+        matrix.fillScreen(0);
       }
       num++;
       if(num == TOTAL_ANIMATION)
