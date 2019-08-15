@@ -37,6 +37,9 @@ namespace LEDController
         public const byte CMD_ANINE = 0xA0;
         public const byte CMD_ATEN = 0xB0;
 
+        //in between each message, a spliter of 0xFF is set for server to accurately
+        //receive array.
+        public const byte NUM_SPLITER = 4;
         public struct header
         {
             public byte datatype;
@@ -150,20 +153,19 @@ namespace LEDController
 
         private void send(ref Socket connection, String mes, byte datatype)
         {
-            TextBox[] textlist = { messageinput1, messageinput2, messageinput3, messageinput4, messageinput5 };
+            String[] textlist = { messageinput1.Text, messageinput2.Text, messageinput3.Text,
+                                messageinput4.Text, messageinput5.Text};
             
             //length of the header struct
             int headerlength = 3;
-            byte[] messagelist_byte = new byte[textlist[0].Text.Length + textlist[1].Text.Length
-                                    + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 4];
+            byte[] messagelist_byte = new byte[textlist[0].Length + textlist[1].Length
+                                    + textlist[2].Length + textlist[3].Length + textlist[4].Length + NUM_SPLITER];
             byte[] buffer = new byte[messagelist_byte.Length + headerlength];
             byte[] header_byte = socket_header.toBytes();
-            string[] messagelist = new string[5];
             
             int index = 0;
             for (int i = 0; i < 5; i++)
             {
-                messagelist[i] = textlist[i].Text;
 
                 if (i != 0)
                 {
@@ -171,7 +173,7 @@ namespace LEDController
                     index++;
                 }
 
-                foreach (char x in messagelist[i])
+                foreach (char x in textlist[i])
                 {
                     messagelist_byte[index] = (byte)x;
                     index++;
@@ -198,7 +200,8 @@ namespace LEDController
         private void Disconnect_Click(object sender, EventArgs e)
         {
             endConnection(ref ledconnection);
-
+            this.connstatus.Text = "Disconnected";
+            this.remoteip.Text = "Connected IP\n     None";
         }
 
         private void Sendmes_Click(object sender, EventArgs e)
@@ -210,7 +213,7 @@ namespace LEDController
             try
             {
                 socket_header.length = (char)(textlist[0].Text.Length + textlist[1].Text.Length
-                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + 4);
+                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + NUM_SPLITER);
                 socket_header.datatype = DATA_MESSAGE;
                 //to put save all the messages locally
                 updateMessageFile();
@@ -246,56 +249,6 @@ namespace LEDController
 
         private void Sendcmd_Click(object sender, EventArgs e)
         {
-            if (ledconnection == null || !ledconnection.Connected)
-                return;
-
-            socket_header.length = (char)0;
-            socket_header.datatype = DATA_CMD;
-            byte[] header = socket_header.toBytes();
-            byte[] buffer = new byte[3];
-            byte mode = CMD_DEFAULT;
-            switch (modeoptions.SelectedItem.ToString())
-            {
-                case "Default mode":
-                    mode = CMD_DEFAULT;
-                    break;
-                case "Animation 1":
-                    mode = CMD_AONE;
-                    break;
-                case "Animation 2":
-                    mode = CMD_ATWO;
-                    break;
-                case "Animation 3":
-                    mode = CMD_ATHREE;
-                    break;
-                case "Animation 4":
-                    mode = CMD_AFOUR;
-                    break;
-                case "Animation 5":
-                    mode = CMD_AFIVE;
-                    break;
-                case "Animation 6":
-                    mode = CMD_ASIX;
-                    break;
-                case "Animation 7":
-                    mode = CMD_ASEVEN;
-                    break;
-                case "Animation 8":
-                    mode = CMD_AEIGHT;
-                    break;
-                case "Animation 9":
-                    mode = CMD_ANINE;
-                    break;
-                case "Animation 10":
-                    mode = CMD_ATEN;
-                    break;
-                case "Sleep mode":
-                    break;
-            }
-            buffer[0] = header[0];
-            buffer[1] = header[1];
-            buffer[2] = mode;
-            ledconnection.Send(buffer, SocketFlags.None);
 
 
         }
@@ -509,5 +462,35 @@ namespace LEDController
             ledconnection.Send(buffer, SocketFlags.None);
         }
 
+        private void importTextFromFile()
+        {
+            String path = "message.txt";
+            if (!File.Exists(path))
+                return;
+
+
+            using (StreamReader sr = File.OpenText(path))
+            {
+                TextBox[] messagelist = { messageinput1, messageinput2, messageinput3,
+                                        messageinput4, messageinput5 };
+                string line = "";
+                int index = 0;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    messagelist[index].Text = line;
+                    index++;
+                }
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            importTextFromFile();
+        }
+
+        private void Connectagain_Click(object sender, EventArgs e)
+        {
+            connectionPanel.Visible = true;
+        }
     }
 }

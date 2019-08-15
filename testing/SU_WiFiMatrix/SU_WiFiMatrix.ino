@@ -33,7 +33,7 @@ void (*animations[8])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeR
 void setup() 
 {
   Serial.begin(9600);
-  EEPROM.begin(6);
+  EEPROM.begin(512);
   WiFi.begin(wifiname, wifipass);
   
   while(WiFi.status() != WL_CONNECTED)
@@ -123,52 +123,44 @@ void zeroArray(String* target, int8_t len)
 {
   for(int i = 0; i < len; i++)
   {
-    target[i] = " ";
+    target[i] = "";
   }
 }
 
 void receiveData()//string for now, later, implement body to hold different values
 {
-  if(tmpClient.available()) 
-  {  
-      bool change_flag = false;
-      Serial.println("Now receiving data...");
-      // first read the header: 2 byte, one of them is a char
-      socket_header.datatype = tmpClient.read();      
-      socket_header.len = (char)tmpClient.read();
-      Serial.println(socket_header.len);
-      if(socket_header.datatype == DATA_MESSAGE)
-      {
-          zeroArray(socket_body.message, 5);
-          socket_header.messageoption = tmpClient.read();
-          change_flag = true;
-          int8_t index = 0;
+  if(tmpClient.available())
+  {
+    byte datatype = tmpClient.read();
+    socket_header.len = tmpClient.read();
+    if(datatype == DATA_MESSAGE)
+    {
+        socket_header.messageoption = tmpClient.read();
+        zeroArray(socket_body.message, 5);
+        int mesgindex = 0;
+        for(int i = 0; i < socket_header.len; i++)
+        {
+          char value = (char)tmpClient.read();
           
-          for(int i = 0; i < socket_header.len; i++)
+          if(value == 0xFF)
           {
-            char value = tmpClient.read();
-            if(value == 0xFF)
-            {
-              //Serial.println(socket_body.message[index]);
-              //Serial.println(index);
-              index++;
-            }
-            else
-            {
-              socket_body.message[index] += value;
-              delay(10);
-            }
+            //Serial.println(socket_body.message[mesgindex]);
+            mesgindex++;
           }
-      }
-      else if(socket_header.datatype == DATA_CMD) //DATA_CMD
-      {
-          change_flag = true;
-          Serial.println("New mode!");
-          socket_body.panel_mode = tmpClient.read();
-          Serial.println(socket_body.panel_mode);
-      }
-      if(change_flag)
-        socket_body.writeToEEPROM();
+          else
+          {
+            socket_body.message[mesgindex] += value;
+          }          
+        }
+    }
+    else if(datatype = DATA_CMD)
+    {
+      Serial.println("New Mode");
+      socket_body.panel_mode = tmpClient.read();
+    }
+    //saves data in flash
+    socket_body.writeToEEPROM();
+    Serial.println(socket_body.message[4]);
   }
 }
 
@@ -275,8 +267,8 @@ void loop() {
   {
     //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
-      //Serial.println(socket_body.message[mesg_index]);
-      while(millis() - timer < 30000)
+      //Serial.println(socket_body.message[4]);
+      while(millis() - timer < 120000)
       {
         (*animations[num])();
         if(socket_body.panel_mode != DEFAULTMODE)
@@ -284,6 +276,11 @@ void loop() {
         
         if(!socket_body.message[mesg_index].equals(" "))
           scrollingText(socket_body.message[mesg_index], WIDTH, 0, -WIDTH, 0, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
+        mesg_index++;
+      if(mesg_index > 4)
+      {
+        mesg_index = 0;
+      }
         
         delay(100);
         matrix.fillScreen(0);

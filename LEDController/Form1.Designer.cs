@@ -67,6 +67,7 @@
             this.animationsetting = new System.Windows.Forms.Panel();
             this.modeoption2 = new System.Windows.Forms.ComboBox();
             this.cmd = new System.Windows.Forms.Button();
+            this.connectagain = new System.Windows.Forms.Button();
             this.connectionPanel.SuspendLayout();
             this.panel3.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -74,7 +75,6 @@
             this.panel1.SuspendLayout();
             this.animationsetting.SuspendLayout();
             this.SuspendLayout();
-            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.form_MouseMove);
             // 
             // connect
             // 
@@ -209,7 +209,7 @@
             "bottom_most",
             "custom"});
             this.scrollingoption.Location = new System.Drawing.Point(293, 120);
-            this.scrollingoption.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.scrollingoption.Margin = new System.Windows.Forms.Padding(2);
             this.scrollingoption.Name = "scrollingoption";
             this.scrollingoption.Size = new System.Drawing.Size(171, 24);
             this.scrollingoption.TabIndex = 10;
@@ -232,7 +232,7 @@
             "Animation 9",
             "Animation 10"});
             this.modeoptions.Location = new System.Drawing.Point(47, 32);
-            this.modeoptions.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.modeoptions.Margin = new System.Windows.Forms.Padding(2);
             this.modeoptions.Name = "modeoptions";
             this.modeoptions.Size = new System.Drawing.Size(155, 24);
             this.modeoptions.TabIndex = 12;
@@ -240,7 +240,7 @@
             // sendcmd
             // 
             this.sendcmd.Location = new System.Drawing.Point(65, 91);
-            this.sendcmd.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.sendcmd.Margin = new System.Windows.Forms.Padding(2);
             this.sendcmd.Name = "sendcmd";
             this.sendcmd.Size = new System.Drawing.Size(114, 26);
             this.sendcmd.TabIndex = 14;
@@ -331,7 +331,7 @@
             this.panel4.Controls.Add(this.modeoptions);
             this.panel4.Controls.Add(this.sendcmd);
             this.panel4.Location = new System.Drawing.Point(0, 77);
-            this.panel4.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.panel4.Margin = new System.Windows.Forms.Padding(2);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(477, 337);
             this.panel4.TabIndex = 19;
@@ -339,11 +339,12 @@
             // panel1
             // 
             this.panel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(168)))), ((int)(((byte)(109)))));
+            this.panel1.Controls.Add(this.connectagain);
             this.panel1.Controls.Add(this.remoteip);
             this.panel1.Controls.Add(this.label7);
             this.panel1.Controls.Add(this.connstatus);
             this.panel1.Controls.Add(this.label6);
-            this.panel1.Location = new System.Drawing.Point(1, 0);
+            this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(133, 416);
             this.panel1.TabIndex = 17;
@@ -566,8 +567,8 @@
             // 
             this.animationsetting.Controls.Add(this.modeoption2);
             this.animationsetting.Controls.Add(this.cmd);
-            this.animationsetting.Location = new System.Drawing.Point(137, 77);
-            this.animationsetting.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.animationsetting.Location = new System.Drawing.Point(135, 77);
+            this.animationsetting.Margin = new System.Windows.Forms.Padding(2);
             this.animationsetting.Name = "animationsetting";
             this.animationsetting.Size = new System.Drawing.Size(475, 335);
             this.animationsetting.TabIndex = 29;
@@ -596,7 +597,7 @@
             "Screen Bomb",
             "Breath Effect"});
             this.modeoption2.Location = new System.Drawing.Point(147, 52);
-            this.modeoption2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.modeoption2.Margin = new System.Windows.Forms.Padding(2);
             this.modeoption2.Name = "modeoption2";
             this.modeoption2.Size = new System.Drawing.Size(171, 24);
             this.modeoption2.TabIndex = 11;
@@ -614,6 +615,20 @@
             this.cmd.Text = "Send";
             this.cmd.UseVisualStyleBackColor = false;
             this.cmd.Click += new System.EventHandler(this.Cmd_Click);
+            // 
+            // connectagain
+            // 
+            this.connectagain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(47)))), ((int)(((byte)(49)))));
+            this.connectagain.FlatAppearance.BorderSize = 0;
+            this.connectagain.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.connectagain.ForeColor = System.Drawing.Color.White;
+            this.connectagain.Location = new System.Drawing.Point(17, 316);
+            this.connectagain.Name = "connectagain";
+            this.connectagain.Size = new System.Drawing.Size(99, 37);
+            this.connectagain.TabIndex = 4;
+            this.connectagain.Text = "Recoonect";
+            this.connectagain.UseVisualStyleBackColor = false;
+            this.connectagain.Click += new System.EventHandler(this.Connectagain_Click);
             // 
             // Form1
             // 
@@ -644,6 +659,8 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "Form1";
             this.Text = "SU_WifiMatrix";
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.form_MouseMove);
             this.connectionPanel.ResumeLayout(false);
             this.connectionPanel.PerformLayout();
             this.panel3.ResumeLayout(false);
@@ -698,6 +715,8 @@
         private System.Windows.Forms.Panel animationsetting;
         private System.Windows.Forms.ComboBox modeoption2;
         private System.Windows.Forms.Button cmd;
+        private System.Windows.Forms.Button reconnect;
+        private System.Windows.Forms.Button connectagain;
     }
 }
 

@@ -15,6 +15,7 @@ enum Mode:byte {DEFAULTMODE = 0x40, FADINGRECT = 0x50, FLASHINGCIR = 0x60, ZIGZA
                 BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0};
 extern WiFiClient tmpClient;
 extern WiFiServer server;
+extern Adafruit_NeoMatrix matrix;
 
 byte heights[WIDTH]; // for the music bar animation
 byte colors[WIDTH * 3];
@@ -27,6 +28,8 @@ void oppositeRandomLine();
 void fewRandomLine(int8_t y, int8_t lines);
 bool displayText(int8_t x, int8_t y, String& message, uint16_t color);
 void screenBomb();
+void zeroArray(String* target, int8_t len);
+
 
 typedef struct Header
 {
@@ -87,80 +90,74 @@ struct Body
   
   void writeToEEPROM()
   {
-    byte buff[socket_header.len + 2];
-    int index = 0;
-    int16_t decreament = 0;
+    //one additonal byte for panel_mode
+    byte buff[socket_header.len + 1];
+    int8_t mesgindex = 0;
+    uint16_t bufferedlength = 0;
     for(int i = 0; i < socket_header.len; i++)
-    {      
-      if((i - decreament) == message[index].length())
+    {
+      if((i - bufferedlength) == this->message[mesgindex].length())
       {
-        decreament += message[index].length() + 1;
-        index++;
-        buff[i] = 0xFF;//the spliter between strings        
+        buff[i] = (char)0xFF;
+        mesgindex++;
+        //+1 because this byte is used for spliter
+        bufferedlength += this->message[mesgindex].length() + 1;
       }
       else
       {
-        buff[i] = message[index].charAt(i - decreament);
+        buff[i] = (char)this->message[mesgindex].charAt(i - bufferedlength);
       }
     }
-    buff[socket_header.len] = command;
-    buff[socket_header.len + 1] = panel_mode;
-
-    for(int i = 0; i < socket_header.len + 2; i++)
-    {
-      Serial.println(buff[i]);
-    }
-
+    buff[socket_header.len] = this->panel_mode;
+    
     EEPROM.write(0, socket_header.len);
-    EEPROM.commit();
-    for(int i = 0 ; i < socket_header.len + 2; i++)
+    for(int i = 0; i < sizeof(buff) / sizeof(byte); i++)
     {
       EEPROM.write(i + 1, buff[i]);
-      EEPROM.commit();
-    }    
-    Serial.println("Saved data in Flash");
+      Serial.println((char)buff[i]);
+    }
+    EEPROM.commit();
   }
 
   bool importFromEEPROM()
   {
-    if(EEPROM.read(socket_header.len + 2) == 0)
+    //the first byte is the length of the message send previously
+    //which should never be zero unless it is a new chip
+    if(EEPROM.read(0) == 0)
     {
-      //this->message = "";
-      this->command = 0x00;
+      zeroArray(this->message, 5);
+      this->command = 0;
       this->panel_mode = DEFAULTMODE;
       return false;
     }
     else
     {
-      int index = 0;
-      uint8_t len = EEPROM.read(0);
-      Serial.println(len);
-      for(int i = 1; i <= len; i++)
-      {
-        char value = EEPROM.read(i);
-        Serial.println(EEPROM.read(i));
-        if(value == 0xFF)
+        uint8_t len = EEPROM.read(0);
+        Serial.println(len);
+        uint8_t mesgindex = 0;
+        zeroArray(this->message, 5);
+        for(int i = 0; i < len; i++)
         {
-          Serial.println(this->message[index]);
-          index++;          
+          char value = EEPROM.read(i + 1);
+          if(value == 0xFF)
+          {
+            mesgindex++;
+          }
+          else
+          {
+            this->message[mesgindex] += value;
+          }
         }
-        else
-        {
-          this->message[index] += value;
-          
-        }
-        
-      }
-      this->command = EEPROM.read(socket_header.len + 1);//not using, just a place holder
-      this->panel_mode = EEPROM.read(socket_header.len + 2);
-      return true;
+        this->panel_mode = EEPROM.read(len + 1);
+        return true;
     }
+    
   }
 };
 
 
 
-extern Adafruit_NeoMatrix matrix;
+
 
 const int heart[] = {       // Heart bitmap
   0, 1, 1, 0, 1, 1, 0, 0,
