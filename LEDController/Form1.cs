@@ -428,7 +428,7 @@ namespace LEDController
                 case "Fading Rectangle":
                     mode = CMD_AONE;
                     break;
-                case "Flashing Cicle":
+                case "Flashing Circle":
                     mode = CMD_ATWO;
                     break;
                 case "ZigZag Traverse":

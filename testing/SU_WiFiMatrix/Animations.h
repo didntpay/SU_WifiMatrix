@@ -29,7 +29,7 @@ void fewRandomLine(int8_t y, int8_t lines);
 bool displayText(int8_t x, int8_t y, String& message, uint16_t color);
 void screenBomb();
 void zeroArray(String* target, int8_t len);
-
+int16_t readAudio();
 
 typedef struct Header
 {
@@ -99,13 +99,17 @@ struct Body
       if((i - bufferedlength) == this->message[mesgindex].length())
       {
         buff[i] = (char)0xFF;
+        bufferedlength += this->message[mesgindex].length() + 1;
         mesgindex++;
         //+1 because this byte is used for spliter
-        bufferedlength += this->message[mesgindex].length() + 1;
+        /*Serial.println(" ");
+        Serial.println(bufferedlength);
+        Serial.println(" ");*/
       }
       else
       {
         buff[i] = (char)this->message[mesgindex].charAt(i - bufferedlength);
+        Serial.println(i - bufferedlength);
       }
     }
     buff[socket_header.len] = this->panel_mode;
@@ -114,7 +118,7 @@ struct Body
     for(int i = 0; i < sizeof(buff) / sizeof(byte); i++)
     {
       EEPROM.write(i + 1, buff[i]);
-      Serial.println((char)buff[i]);
+      //Serial.println((char)buff[i]);
     }
     EEPROM.commit();
   }
@@ -375,6 +379,7 @@ void oppositeRandomLine()
 void musicBar()
 { 
   uint8_t index = 0;
+  uint16_t noiselevel = 0;
   //initliaze the panel with some lines
   //only do so once
   if(matrix.getPixelColor((HEIGHT - 1) * WIDTH) == 0)
@@ -398,12 +403,14 @@ void musicBar()
   }
 
   index = 0;
+  noiselevel = readAudio();
   
   //base on the initlization, add or delete from it to make the groove.
   for(int i = 0; i < WIDTH; i++)
   {
+    
     //range from deleting 5 pixels to adding 5 pixels
-    int8_t len = random(-3, 3);
+    int8_t len = random(-1, 1) * (noiselevel / 255);
     
     if(len > 0)
     {

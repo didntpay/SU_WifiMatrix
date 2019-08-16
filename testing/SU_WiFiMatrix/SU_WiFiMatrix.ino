@@ -1,8 +1,9 @@
 #include "Animations.h"
 
 #define LEDOUTPUT D5
-#define wifiname   "jmw"//"iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
-#define wifipass   "2067799939"//"B9fmvrfe" //
+#define AUDIOREAD A0
+#define wifiname   "Oasis Guest"//"iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "Oasis519"//"B9fmvrfe" //
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -16,6 +17,8 @@
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
 
+#define AUDIOSENSOR_TOLERANCE 50
+
 #define TOTAL_ANIMATION 8
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
 
@@ -28,7 +31,8 @@ bool client_connect;
 
 Body socket_body;
 Header socket_header(0x00, 0);
-void (*animations[8])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeRandomLine, musicBar, colorTransitionLine, breathEffect,dropSnowFlakes};
+void (*animations[11])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeRandomLine, musicBar, 
+                            colorTransitionLine, breathEffect,dropSnowFlakes, screenBomb, flashingWord, backAndForth};
 
 void setup() 
 {
@@ -52,6 +56,7 @@ void setup()
   server.begin();
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
+  pinMode(AUDIOREAD, INPUT);
   matrix.begin();
   matrix.setBrightness(10);
 
@@ -119,6 +124,17 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
     }
 }
 
+int16_t readAudio()
+{
+  int total = 0;
+  for(int i = 0; i < 10; i++)
+  {
+    total += digitalRead(i);
+  }
+  //take an average from 10 measurements
+  return total / 10;
+}
+
 void zeroArray(String* target, int8_t len)
 {
   for(int i = 0; i < len; i++)
@@ -157,6 +173,7 @@ void receiveData()//string for now, later, implement body to hold different valu
     {
       Serial.println("New Mode");
       socket_body.panel_mode = tmpClient.read();
+      Serial.println(socket_body.panel_mode);
     }
     //saves data in flash
     socket_body.writeToEEPROM();
@@ -263,12 +280,15 @@ void loop() {
 
 
   long timer = millis();
+  int16_t bgnoise;
+  
   switch(socket_body.panel_mode)
   {
     //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
       //Serial.println(socket_body.message[4]);
-      while(millis() - timer < 120000)
+      bgnoise = readAudio();
+      while((millis() - timer < 30000) && readAudio() > bgnoise - AUDIOSENSOR_TOLERANCE)
       {
         (*animations[num])();
         if(socket_body.panel_mode != DEFAULTMODE)
@@ -276,11 +296,6 @@ void loop() {
         
         if(!socket_body.message[mesg_index].equals(" "))
           scrollingText(socket_body.message[mesg_index], WIDTH, 0, -WIDTH, 0, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
-        mesg_index++;
-      if(mesg_index > 4)
-      {
-        mesg_index = 0;
-      }
         
         delay(100);
         matrix.fillScreen(0);

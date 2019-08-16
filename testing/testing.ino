@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 
 #define LEDOUTPUT D5
-#define wifiname  "jmw"//"SU-ECE-Lab"//change this when you are not at Seattle University3
+#define wifiname  ""//"SU-ECE-Lab"//change this when you are not at Seattle University3
 #define wifipass  "2067799939"//"B9fmvrfe"
 
 #define COLOR_INCREAMENT 0.3
@@ -33,7 +33,7 @@ void setup() {
   Serial.print("Connected to wifi, IP: ");
   Serial.println(WiFi.localIP());
 
-  server.begin();*/
+  server.begin();
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
   matrix.begin();
@@ -41,7 +41,23 @@ void setup() {
   matrix.setBrightness(100);
   //matrix.setRotation(1);
   //matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
-  //matrix.drawRGBBitmap(b)
+  //matrix.drawRGBBitmap(b)*/
+
+  EEPROM.begin(512);
+
+  int value = (int)'a';
+  for(int i = 0; i < 27; i++)
+  {
+   EEPROM.write(i, char(value)); 
+   value++;
+  }
+  EEPROM.commit();
+
+  for(int i = 0; i < 27; i++)
+  {
+    char value = EEPROM.read(i);
+    Serial.println(value);
+  }
 }
 
 void displayText(String message, int8_t startx, int8_t starty)
@@ -96,13 +112,7 @@ WiFiClient tmpClient = server.available();
 bool client_connect;*/
 
 void loop() {
-  matrix.drawPixel(0, 2, matrix.Color(255,255,255));
-  matrix.show();
-  Serial.println(matrix.getPixelColor((HEIGHT - 14) * WIDTH));
-  //displayAllWhite();
-  //delay(1000);
-  //matrix.drawPixel(1, 1, matrix.Color(255, 0, 0));
-  //matrix.show();
+  
   
   
   
