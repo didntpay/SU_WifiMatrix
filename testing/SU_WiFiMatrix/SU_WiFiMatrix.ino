@@ -2,8 +2,8 @@
 
 #define LEDOUTPUT D5
 #define AUDIOREAD A0
-#define wifiname   "Oasis Guest"//"iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
-#define wifipass   "Oasis519"//"B9fmvrfe" //
+#define wifiname   "jmw"//"iPhone (49)"//"SU-ECE-Lab" //change this when you are not at Seattle University
+#define wifipass   "2067799939"//"B9fmvrfe" //
 
 #define DATA_MESSAGE 0x80
 #define DATA_CMD 0x90
@@ -16,10 +16,8 @@
 
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
-
-#define AUDIOSENSOR_TOLERANCE 50
-
 #define TOTAL_ANIMATION 8
+
 uint8_t firstled = NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS;
 
 Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(32, 16, LEDOUTPUT, firstled, NEO_GRB + NEO_KHZ800);
@@ -57,31 +55,20 @@ void setup()
   // put your setup code here, to run once:
   pinMode(LEDOUTPUT, OUTPUT);
   pinMode(AUDIOREAD, INPUT);
+  
   matrix.begin();
   matrix.setBrightness(10);
 
 }
 
-bool displayText(int8_t x, int8_t y, String& message, uint16_t color)
+void displayText(int8_t x, int8_t y, String& message, uint16_t color)
 {
   matrix.fillScreen(0);
   matrix.setTextColor(color);
   matrix.setCursor(x, y);
   matrix.print(message);
   matrix.show();
-  /*unsigned long timeout = millis();
-  while((millis() - timeout) < 200)
-  {
-    socket_header.checkForConnection();
-    if(socket_header.checkForInterrupt())
-    {
-      matrix.fillScreen(0);
-      return true;
-    }
-                  
-  }*/
   delay(0);
-  return false;
 }
 
 void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy, uint16_t color)
@@ -99,10 +86,10 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = -1;
         for(int8_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally 
         {         
-          if(displayText(i, 0, message, color))
-            return;
+          displayText(i, 0, message, color);
           //delay(100);
-          delayAndCheck(200);
+          if(delayAndCheck(200))
+            return;
         }
         Serial.println(message);
     }
@@ -117,9 +104,9 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = -1;
         for(int8_t i = starty; i > multiplier * endy; starty > endy ?i-- : i++)//scrolling horizontally right to left
         {
-          if(displayText(0, i, message, color))
-            return;  
-          delayAndCheck(200);
+          displayText(0, i, message, color);
+          if(delayAndCheck(200))
+            return;
         }
     }
 }
@@ -127,12 +114,21 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
 int16_t readAudio()
 {
   int total = 0;
-  for(int i = 0; i < 10; i++)
+  for(int i = 0; i < 50; i++)
   {
-    total += digitalRead(i);
+    int temp = analogRead(AUDIOREAD);
+    /*if((temp - total / (i + 1)) > 10)
+    {
+      //this is an outliner
+      total += total / (i + 1);
+    }
+    else
+    {*/
+      total += temp;
+    //}
   }
-  //take an average from 10 measurements
-  return total / 10;
+  //take an average from 50 measurements
+  return total / 50;
 }
 
 void zeroArray(String* target, int8_t len)
@@ -173,7 +169,6 @@ void receiveData()//string for now, later, implement body to hold different valu
     {
       Serial.println("New Mode");
       socket_body.panel_mode = tmpClient.read();
-      Serial.println(socket_body.panel_mode);
     }
     //saves data in flash
     socket_body.writeToEEPROM();

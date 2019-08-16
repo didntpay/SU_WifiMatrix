@@ -9,7 +9,7 @@
 #define WIDTH 32
 #define HEIGHT 16
 #define DEFAULT_BRIGHTNESS 50
-
+#define AUDIOSENSOR_TOLERANCE 2
 
 enum Mode:byte {DEFAULTMODE = 0x40, FADINGRECT = 0x50, FLASHINGCIR = 0x60, ZIGZAGTRAVERSE = 0x70, BACKANDFORTH = 0x80, FLASHINGWORD = 0x90, 
                 BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0};
@@ -26,7 +26,7 @@ void receiveData();
 void dropSnowFlakes();
 void oppositeRandomLine();
 void fewRandomLine(int8_t y, int8_t lines);
-bool displayText(int8_t x, int8_t y, String& message, uint16_t color);
+void displayText(int8_t x, int8_t y, String& message, uint16_t color);
 void screenBomb();
 void zeroArray(String* target, int8_t len);
 int16_t readAudio();
@@ -379,22 +379,27 @@ void oppositeRandomLine()
 void musicBar()
 { 
   uint8_t index = 0;
-  uint16_t noiselevel = 0;
+  uint16_t bgnoiselevel = 0;
   //initliaze the panel with some lines
   //only do so once
   if(matrix.getPixelColor((HEIGHT - 1) * WIDTH) == 0)
   {
     //HEIGHT - 1 * WIDTH) is the bottom left pixel
     //Serial.println((HEIGHT - 2) * WIDTH + 1);
+    matrix.fillScreen(0);
     for(int i = 0; i < WIDTH; i++)
     {
-      int8_t len = random(0, 14);
+      int16_t value = readAudio();
+      //initalize height base on noise level
+      Serial.println(value);
+      int8_t len = random(0, 5 * value);
+      
       uint8_t r = random(0, 255);
       uint8_t g = random(0 , 255);
       uint8_t b = random(0, 255);
-      matrix.drawLine(i, HEIGHT - 1, i, len, matrix.Color(r, g, b));
+      matrix.drawLine(i, HEIGHT - 1, i, HEIGHT - 1 - len, matrix.Color(r, g, b));
       matrix.show();
-      heights[i] = len;
+      heights[i] = HEIGHT - 1 - len;
       colors[index] = r;
       colors[index + 1] = g;
       colors[index + 2] = b;
@@ -403,27 +408,36 @@ void musicBar()
   }
 
   index = 0;
-  noiselevel = readAudio();
+  bgnoiselevel = readAudio();
   
   //base on the initlization, add or delete from it to make the groove.
   for(int i = 0; i < WIDTH; i++)
   {
     
     //range from deleting 5 pixels to adding 5 pixels
-    int8_t len = random(-1, 1) * (noiselevel / 255);
+    int8_t len  = 1;
+    int16_t currentnoiselevel = readAudio();
+    Serial.println(currentnoiselevel);
+    if(currentnoiselevel < bgnoiselevel)
+      len *= -1;
+    else if((currentnoiselevel - bgnoiselevel) == 2)
+      len *= 2;
+
     
     if(len > 0)
     {
+      len = random(0, len);
       matrix.drawLine(i, heights[i], i, heights[i] - len, matrix.Color(colors[index], colors[index + 1], colors[index + 2]));
       heights[i] -= len;
     }
     else if(len < 0)
     {
-      matrix.drawLine(i, heights[i] - len, i, heights[i], matrix.Color(0, 0, 0));
+      len = random(len, 0);
+      matrix.drawLine(i, heights[i], i, heights[i] + (-1 * len), matrix.Color(0, 0, 0));
       heights[i] += -1 * len;
     }
       
-    matrix.show();
+    
     /*if((heights[i] + len) < 0)
       heights[i] = 0;
     else if(heights[i] + len > 15)
@@ -433,6 +447,7 @@ void musicBar()
     if(delayAndCheck(10))
       return;
   }
+  matrix.show();
 }
 
 void colorTransitionLine()

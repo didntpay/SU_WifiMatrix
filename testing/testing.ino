@@ -5,6 +5,7 @@
 #include <EEPROM.h>
 
 #define LEDOUTPUT D5
+#define AUDIOREAD A0
 #define wifiname  ""//"SU-ECE-Lab"//change this when you are not at Seattle University3
 #define wifipass  "2067799939"//"B9fmvrfe"
 
@@ -42,22 +43,7 @@ void setup() {
   //matrix.setRotation(1);
   //matrix.setTextColor(matrix.Color(255, 0, 0));//matrix.Color(r, g, b)  
   //matrix.drawRGBBitmap(b)*/
-
-  EEPROM.begin(512);
-
-  int value = (int)'a';
-  for(int i = 0; i < 27; i++)
-  {
-   EEPROM.write(i, char(value)); 
-   value++;
-  }
-  EEPROM.commit();
-
-  for(int i = 0; i < 27; i++)
-  {
-    char value = EEPROM.read(i);
-    Serial.println(value);
-  }
+  pinMode(AUDIOREAD, INPUT);
 }
 
 void displayText(String message, int8_t startx, int8_t starty)
@@ -111,9 +97,30 @@ void displayAllWhite()
 WiFiClient tmpClient = server.available();
 bool client_connect;*/
 
+int16_t readAudio()
+{
+  int total = 0;
+  for(int i = 0; i < 50; i++)
+  {
+    int temp = analogRead(AUDIOREAD);
+    if((temp - total / (i + 1)) > 10)
+    {
+      //this is an outliner
+      total += total / (i + 1);
+    }
+    else
+    {
+      total += temp;
+    }
+     
+  }
+
+  return total / 50;
+}
+
 void loop() {
+  Serial.println(readAudio());
   
-  
-  
+  delay(100);
   
 }
