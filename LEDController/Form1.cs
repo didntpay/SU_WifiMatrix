@@ -36,6 +36,7 @@ namespace LEDController
         public const byte CMD_AEIGHT = 0x30;
         public const byte CMD_ANINE = 0xA0;
         public const byte CMD_ATEN = 0xB0;
+        public const byte CMD_AEVELEN = 0xC0;
 
         //in between each message, a spliter of 0xFF is set for server to accurately
         //receive array.
@@ -93,7 +94,7 @@ namespace LEDController
             else
             {
                 Ping pingsender = new Ping();
-                PingReply reply = pingsender.Send(IPAddress.Parse(targetip), 3000);
+                PingReply reply = pingsender.Send(IPAddress.Parse(targetip), 1000);
                 if (reply.Status == IPStatus.Success)
                 {
                     try
@@ -415,7 +416,10 @@ namespace LEDController
             if (ledconnection == null || !ledconnection.Connected)
                 return;
 
-            socket_header.length = (char)0;
+            TextBox[] textlist = { messageinput1, messageinput2, messageinput3, messageinput4, messageinput5 };
+
+            socket_header.length = (char)(textlist[0].Text.Length + textlist[1].Text.Length
+                                + textlist[2].Text.Length + textlist[3].Text.Length + textlist[4].Text.Length + NUM_SPLITER);
             socket_header.datatype = DATA_CMD;
             byte[] header = socket_header.toBytes();
             byte[] buffer = new byte[3];
@@ -455,6 +459,9 @@ namespace LEDController
                 case "Screen Bomb":
                     mode = CMD_ATEN;
                     break;
+                case "Clap to light":
+                    mode = CMD_AEVELEN;
+                    break;
             }
             buffer[0] = header[0];
             buffer[1] = header[1];
@@ -491,6 +498,7 @@ namespace LEDController
         private void Connectagain_Click(object sender, EventArgs e)
         {
             connectionPanel.Visible = true;
+            connectionPanel.BringToFront();
         }
     }
 }

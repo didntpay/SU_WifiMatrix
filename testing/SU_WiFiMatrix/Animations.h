@@ -12,16 +12,18 @@
 #define AUDIOSENSOR_TOLERANCE 2
 
 enum Mode:byte {DEFAULTMODE = 0x40, FADINGRECT = 0x50, FLASHINGCIR = 0x60, ZIGZAGTRAVERSE = 0x70, BACKANDFORTH = 0x80, FLASHINGWORD = 0x90, 
-                BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0};
+                BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0,
+                CLAPLIGHT = 0xC0};
 extern WiFiClient tmpClient;
 extern WiFiServer server;
 extern Adafruit_NeoMatrix matrix;
+extern uint16_t bgnoise;
 
 byte heights[WIDTH]; // for the music bar animation
 byte colors[WIDTH * 3];
 
 //function declaration
-bool delayAndCheck(uint8_t interval);
+bool delayAndCheck(uint16_t interval);
 void receiveData();
 void dropSnowFlakes();
 void oppositeRandomLine();
@@ -88,39 +90,49 @@ struct Body
     this->panel_mode = ledmode;
   }
   
-  void writeToEEPROM()
+  void writeToEEPROM(bool flag)
   {
     //one additonal byte for panel_mode
-    byte buff[socket_header.len + 1];
-    int8_t mesgindex = 0;
-    uint16_t bufferedlength = 0;
-    for(int i = 0; i < socket_header.len; i++)
+    if(flag)
     {
-      if((i - bufferedlength) == this->message[mesgindex].length())
+      byte buff[socket_header.len + 1];
+      int8_t mesgindex = 0;
+      uint16_t bufferedlength = 0;
+      for(int i = 0; i < socket_header.len; i++)
       {
-        buff[i] = (char)0xFF;
-        bufferedlength += this->message[mesgindex].length() + 1;
-        mesgindex++;
-        //+1 because this byte is used for spliter
-        /*Serial.println(" ");
-        Serial.println(bufferedlength);
-        Serial.println(" ");*/
+        if((i - bufferedlength) == this->message[mesgindex].length())
+        {
+          buff[i] = (char)0xFF;
+          bufferedlength += this->message[mesgindex].length() + 1;
+          mesgindex++;
+          //+1 because this byte is used for spliter
+          /*Serial.println(" ");
+          Serial.println(bufferedlength);
+          Serial.println(" ");*/
+        }
+        else
+        {
+          buff[i] = (char)this->message[mesgindex].charAt(i - bufferedlength);
+        }
       }
-      else
-      {
-        buff[i] = (char)this->message[mesgindex].charAt(i - bufferedlength);
-        Serial.println(i - bufferedlength);
-      }
-    }
-    buff[socket_header.len] = this->panel_mode;
+
+      buff[socket_header.len] = this->panel_mode;
     
-    EEPROM.write(0, socket_header.len);
-    for(int i = 0; i < sizeof(buff) / sizeof(byte); i++)
-    {
-      EEPROM.write(i + 1, buff[i]);
-      //Serial.println((char)buff[i]);
+      EEPROM.write(0, socket_header.len);
+      for(int i = 0; i < sizeof(buff) / sizeof(byte); i++)
+      {
+        EEPROM.write(i + 1, buff[i]);
+        //Serial.println((char)buff[i]);
+      }
+      EEPROM.commit();
     }
-    EEPROM.commit();
+    else
+    {
+      EEPROM.write(0, socket_header.len);
+      EEPROM.write(socket_header.len + 1, this->panel_mode);
+      EEPROM.commit();
+    }
+    
   }
 
   bool importFromEEPROM()
@@ -136,8 +148,8 @@ struct Body
     }
     else
     {
-        uint8_t len = EEPROM.read(0);
-        Serial.println(len);
+        socket_header.len = EEPROM.read(0);
+        uint8_t len = socket_header.len;
         uint8_t mesgindex = 0;
         zeroArray(this->message, 5);
         for(int i = 0; i < len; i++)
@@ -159,20 +171,6 @@ struct Body
   }
 };
 
-
-
-
-
-const int heart[] = {       // Heart bitmap
-  0, 1, 1, 0, 1, 1, 0, 0,
-  1, 1, 1, 1, 1, 1, 1, 0,
-  1, 1, 1, 1, 1, 1, 1, 0,
-  1, 1, 1, 1, 1, 1, 1, 0,
-  0, 1, 1, 1, 1, 1, 0, 0,
-  0, 0, 1, 1, 1, 0, 0, 0,
-  0, 0, 0, 1, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0
-};
 
 const byte snowflakes[] =
 {
@@ -327,9 +325,8 @@ void flashingWord()
   for(int i = 0; i < 6; i++)
   {
     displayText(0, 0, message[i], matrix.Color(255, 255, 255));
-    if(delayAndCheck(1000))
+    if(delayAndCheck(2000))
       return;
-    delayAndCheck(1000);
     matrix.fillScreen(0);
     matrix.show();
     
@@ -374,7 +371,30 @@ void oppositeRandomLine()
  matrix.fillScreen(0);
 }
 
+void clapTurnon()
+{
+  uint16_t color;
 
+  color = matrix.Color(random(0, 255), random(0, 255), random(0, 255));
+  int temp = readAudio();
+  Serial.println(temp);
+  if(temp > 12)
+  {
+    for(int y = 0; y < HEIGHT; y++)
+    {
+       for(int x = 0; x < WIDTH; x++)
+       {
+        matrix.drawPixel(x, y, color);
+       }
+      
+    }
+    matrix.show();
+    if(delayAndCheck(200))
+      return;
+    matrix.fillScreen(0);
+    matrix.show();
+  }
+}
 
 void musicBar()
 { 
@@ -391,8 +411,9 @@ void musicBar()
     {
       int16_t value = readAudio();
       //initalize height base on noise level
-      Serial.println(value);
-      int8_t len = random(0, 5 * value);
+      if(value > 12)
+        value = 12;
+      int8_t len = random(0, value);
       
       uint8_t r = random(0, 255);
       uint8_t g = random(0 , 255);
@@ -408,7 +429,7 @@ void musicBar()
   }
 
   index = 0;
-  bgnoiselevel = readAudio();
+  bgnoiselevel = bgnoise;
   
   //base on the initlization, add or delete from it to make the groove.
   for(int i = 0; i < WIDTH; i++)
@@ -417,11 +438,11 @@ void musicBar()
     //range from deleting 5 pixels to adding 5 pixels
     int8_t len  = 1;
     int16_t currentnoiselevel = readAudio();
-    Serial.println(currentnoiselevel);
-    if(currentnoiselevel < bgnoiselevel)
+    //Serial.println(currentnoiselevel);
+    if(currentnoiselevel < bgnoise)
       len *= -1;
     else if((currentnoiselevel - bgnoiselevel) == 2)
-      len *= 2;
+      len *= 3;
 
     
     if(len > 0)
@@ -562,7 +583,7 @@ void breathEffect()
   }
 }
 
-bool delayAndCheck(uint8_t interval)//ms
+bool delayAndCheck(uint16_t interval)//ms
 {
     unsigned long timeout = millis();
     while((millis() - timeout) < interval)

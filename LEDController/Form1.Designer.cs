@@ -629,7 +629,8 @@
             "Opposite Random Line",
             "Music Bar",
             "Color Transition Line",
-            "Screen Bomb"});
+            "Screen Bomb",
+            "Clap to light"});
             this.modeoption2.Location = new System.Drawing.Point(220, 81);
             this.modeoption2.Name = "modeoption2";
             this.modeoption2.Size = new System.Drawing.Size(254, 33);

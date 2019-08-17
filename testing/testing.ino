@@ -103,15 +103,15 @@ int16_t readAudio()
   for(int i = 0; i < 50; i++)
   {
     int temp = analogRead(AUDIOREAD);
-    if((temp - total / (i + 1)) > 10)
+    /*if((temp - total / (i + 1)) > 10)
     {
       //this is an outliner
       total += total / (i + 1);
     }
     else
-    {
+    {*/
       total += temp;
-    }
+    //}
      
   }
 
