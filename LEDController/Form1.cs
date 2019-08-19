@@ -16,15 +16,18 @@ namespace LEDController
     {
         public Socket ledconnection = null;
 
+        //flags for processing network transfer
         public const byte DATA_MESSAGE = 0x80;
         public const byte DATA_CMD = 0x90;
         public const byte DATA_BMP = 0xA0;
 
+        //flags for displaying text
         public const byte SCROLL_LEFT = 0x10;
         public const byte SCROLL_RIGHT = 0x01;
         public const byte SCROLL_TOP = 0x11;
         public const byte SCROLL_BOTTOM = 0x12;
 
+        //flags for different animation(mode)
         public const byte CMD_DEFAULT = 0x40;
         public const byte CMD_AONE = 0x50;
         public const byte CMD_ATWO = 0x60;
@@ -41,12 +44,20 @@ namespace LEDController
         //in between each message, a spliter of 0xFF is set for server to accurately
         //receive array.
         public const byte NUM_SPLITER = 4;
+
+        /*********************************************************************
+         * 
+         * Network header for ESP8266
+         * 
+         *********************************************************************/
         public struct header
         {
+            //public field
             public byte datatype;
             public char length;
             public byte messageoption;
 
+            //constructor
             header(byte cmd = 0x00, char len = (char)0, byte option = SCROLL_LEFT)
             {
                 this.datatype = cmd;
@@ -54,6 +65,10 @@ namespace LEDController
                 this.messageoption = option;
             }
 
+            /*********************************************************************             * 
+             * Convert the header struct to byte array
+             * @Return byte array representing the header struct
+             *********************************************************************/
             public byte[] toBytes()
             {
                 byte[] value = new byte[3];
@@ -72,7 +87,12 @@ namespace LEDController
         }
 
 
-
+        /*********************************************************************
+         * Connect button event handler
+         * 
+         * @Param sender the component that detected the event and transfered to this handler
+         * @param e Informations about the type of events
+         *********************************************************************/
         private void connect_Click(object sender, EventArgs e)
         {
             if (!isIPValid())
@@ -83,6 +103,7 @@ namespace LEDController
             }
 
             String targetip = TargetIp.Text;
+            //check the arduino code before changing port num
             int portnum = Convert.ToInt32(Port_Num.Text);
             ledconnection = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             if (ledconnection.Connected)
@@ -93,6 +114,7 @@ namespace LEDController
             }
             else
             {
+                //ping to check if IP is responding
                 Ping pingsender = new Ping();
                 PingReply reply = pingsender.Send(IPAddress.Parse(targetip), 1000);
                 if (reply.Status == IPStatus.Success)
@@ -121,7 +143,11 @@ namespace LEDController
             
         }
 
-        private bool isIPValid()//implement this later and run before connect.
+        /*********************************************************************         
+         * Check if given IP address is valid         
+         * @Return returns true if IP is valid, false otherwise
+         *********************************************************************/
+        private bool isIPValid()
         {
             string ip = TargetIp.Text;
             string[] tmp = ip.Split('.');
@@ -152,7 +178,12 @@ namespace LEDController
 
         }
 
-        private void send(ref Socket connection, String mes, byte datatype)
+        /*********************************************************************   
+         * Proceed to send a package to the target
+         * @Param Socket the connected socket with the target
+         * @Param byte a flag from the data type region
+         *********************************************************************/
+        private void send(ref Socket connection, byte datatype)
         {
             String[] textlist = { messageinput1.Text, messageinput2.Text, messageinput3.Text,
                                 messageinput4.Text, messageinput5.Text};
@@ -196,8 +227,12 @@ namespace LEDController
             connection.Send(buffer, SocketFlags.None);
         }
 
-        
 
+        /*********************************************************************   
+         * Event handler for the disconnect button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Disconnect_Click(object sender, EventArgs e)
         {
             endConnection(ref ledconnection);
@@ -205,6 +240,12 @@ namespace LEDController
             this.remoteip.Text = "Connected IP\n     None";
         }
 
+
+        /*********************************************************************   
+         * Event handler for the send button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Sendmes_Click(object sender, EventArgs e)
         {
             if (ledconnection == null || ledconnection.Connected == false)
@@ -218,7 +259,7 @@ namespace LEDController
                 socket_header.datatype = DATA_MESSAGE;
                 //to put save all the messages locally
                 updateMessageFile();
-                send(ref ledconnection, messageinput1.Text, DATA_MESSAGE);
+                send(ref ledconnection, DATA_MESSAGE);
             }
             catch (SocketException se)
             {
@@ -227,6 +268,11 @@ namespace LEDController
 
         }
 
+        /*********************************************************************   
+         * Event handler for the send button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Scrollingoption_SelectedIndexChanged(object sender, EventArgs e)
         {
             switch (scrollingoption.SelectedItem.ToString())
@@ -248,12 +294,10 @@ namespace LEDController
             }
         }
 
-        private void Sendcmd_Click(object sender, EventArgs e)
-        {
-
-
-        }
-
+        /*********************************************************************   
+         * Disconnects with the target ip safely
+         * @Param Socket The connected socket with the target IP
+         *********************************************************************/
         private void endConnection(ref Socket connection)
         {
             if (ledconnection == null || !connection.Connected)
@@ -279,6 +323,9 @@ namespace LEDController
             }
         }
 
+        /*********************************************************************   
+         * Updates the messages file stored locally
+         *********************************************************************/
         private void updateMessageFile()
         {
             string path = "./message.txt";
@@ -303,6 +350,12 @@ namespace LEDController
 
             File.WriteAllLines(path, tobeupdate);
         }
+
+        /*********************************************************************   
+         * Event handler for draging the application
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void connectionPanel_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -312,6 +365,11 @@ namespace LEDController
             }
         }
 
+        /*********************************************************************   
+         * Event handler for dragging the form
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void form_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -320,6 +378,11 @@ namespace LEDController
             }
         }
 
+        /*********************************************************************   
+         * Event handler for the red X button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Mainclose_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -389,6 +452,11 @@ namespace LEDController
 
         #endregion
 
+        /*********************************************************************   
+         * Event handler for the setanimation buttons
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void setAnimation_Click(object sender, EventArgs e)
         {
             animationsetting.Visible = true;
@@ -400,6 +468,11 @@ namespace LEDController
             setanimation.BringToFront();
         }
 
+        /*********************************************************************   
+         * Event handler for the addmessage button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void AddMessage_Click(object sender, EventArgs e)
         {
             animationsetting.Visible = false;
@@ -411,6 +484,11 @@ namespace LEDController
             setanimation.BringToFront();
         }
 
+        /*********************************************************************   
+         * Event handler for the send button(Animation side)
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Cmd_Click(object sender, EventArgs e)
         {
             if (ledconnection == null || !ledconnection.Connected)
@@ -469,6 +547,9 @@ namespace LEDController
             ledconnection.Send(buffer, SocketFlags.None);
         }
 
+        /*********************************************************************   
+         * Read from the local file and change the message box's text.
+         *********************************************************************/
         private void importTextFromFile()
         {
             String path = "message.txt";
@@ -495,6 +576,11 @@ namespace LEDController
             importTextFromFile();
         }
 
+        /*********************************************************************   
+         * Event handler for the reconnect button
+         * @Param object The receiver of this event
+         * @Param EventArgs Informations about the event
+         *********************************************************************/
         private void Connectagain_Click(object sender, EventArgs e)
         {
             connectionPanel.Visible = true;

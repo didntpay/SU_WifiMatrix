@@ -4,16 +4,21 @@
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
 
+//Constants for animtaion
 #define COLOR_INCREMENT 25
 #define COLOR_DECREAMENT 30
+
+//Width and height of the matrix
 #define WIDTH 32
 #define HEIGHT 16
-#define DEFAULT_BRIGHTNESS 50
+#define DEFAULT_BRIGHTNESS 40
 #define AUDIOSENSOR_TOLERANCE 2
 
+//flags for different animation(mode)
 enum Mode:byte {DEFAULTMODE = 0x40, FADINGRECT = 0x50, FLASHINGCIR = 0x60, ZIGZAGTRAVERSE = 0x70, BACKANDFORTH = 0x80, FLASHINGWORD = 0x90, 
                 BREATHEFFECT = 0x10, OPPOSITERANDOMLINE = 0x20, SLEEP = 0x00, MUSICBAR = 0x30, COLORTRANSITION = 0xA0, SCREENBOMB = 0xB0,
                 CLAPLIGHT = 0xC0};
+                
 extern WiFiClient tmpClient;
 extern WiFiServer server;
 extern Adafruit_NeoMatrix matrix;
@@ -31,19 +36,53 @@ void fewRandomLine(int8_t y, int8_t lines);
 void displayText(int8_t x, int8_t y, String& message, uint16_t color);
 void screenBomb();
 void zeroArray(String* target, int8_t len);
-int16_t readAudio();
+int16_t readAudio(bool flag);
 
+//bit map for the snowflake animation
+const byte snowflakes[] =
+{
+  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
+  0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
+  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+  0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0,
+  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
+  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
+  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0
+};
+
+//index table which points to the begining of each
+//bit map array
+const byte* animation_table = { snowflakes };
+
+/*********************************************************************
+* Network header for ESP8266
+*********************************************************************/
 typedef struct Header
 {
+  //data field
   byte datatype;
   uint8_t len;
   byte messageoption;
+
+  /*********************************************************************
+   * Header constructor
+   * @Param byte flag to indicate what tyep of data should be sent
+   * @param uint8_t length of the header
+   *********************************************************************/
   Header(byte dt, uint8_t Len)
   {
     this->datatype = dt;
     this->len = Len; 
    }
-   
+
+   /*********************************************************************
+   * Checks the connected socket for incoming packages
+   * @Return Return true if there is incoming packages, false otherwise
+   *********************************************************************/
    bool checkForInterrupt()
    {   
       if(!tmpClient.connected())
@@ -55,7 +94,10 @@ typedef struct Header
         return false; 
       
    }
-   
+
+   /*********************************************************************
+   * Checks the connected socket for incoming connection request
+   *********************************************************************/
    void checkForConnection()
    {
       if(tmpClient.connected())
@@ -67,12 +109,18 @@ typedef struct Header
 
 extern Header socket_header;
 
+/*********************************************************************
+ * A struct representing the body package sent over the network
+ *********************************************************************/
 struct Body
 {
   String message[5];
   byte command;
   byte panel_mode;
 
+  /*********************************************************************
+   * Body default constructor
+   *********************************************************************/
   Body()
   {
     for(int i = 0; i < 5; i++)
@@ -82,17 +130,26 @@ struct Body
     this->command = 0x00;
     this->panel_mode = DEFAULTMODE;
   }
-  
-  Body(const char* mes, byte cmd, byte ledmode)
+
+  /*********************************************************************
+   * Body constructor
+   * @Param byte Flag to indicate what tyep of command(mode) should be sent
+   * @param byte Mode of the matrix(Animation)
+   *********************************************************************/
+  Body(byte cmd, byte ledmode)
   {
     //this->message = String(mes);
     this->command = cmd;
     this->panel_mode = ledmode;
   }
-  
+
+  /*********************************************************************
+   * Saves the received data into flash for auto resets
+   * @Param byte flag to indicate what variables should be save
+   *********************************************************************/
   void writeToEEPROM(bool flag)
   {
-    //one additonal byte for panel_mode
+    //flag true then saves message and mode
     if(flag)
     {
       byte buff[socket_header.len + 1];
@@ -122,12 +179,11 @@ struct Body
       for(int i = 0; i < sizeof(buff) / sizeof(byte); i++)
       {
         EEPROM.write(i + 1, buff[i]);
-        //Serial.println((char)buff[i]);
       }
       EEPROM.commit();
     }
     else
-    {
+    {//flag false, then just save the matrix mode(animation)
       EEPROM.write(0, socket_header.len);
       EEPROM.write(socket_header.len + 1, this->panel_mode);
       EEPROM.commit();
@@ -135,6 +191,10 @@ struct Body
     
   }
 
+  /*********************************************************************
+   * Read from the flash on start up
+   * @Return Returns true if there is data in the flash, false otherwise
+   *********************************************************************/
   bool importFromEEPROM()
   {
     //the first byte is the length of the message send previously
@@ -148,10 +208,13 @@ struct Body
     }
     else
     {
+        //manually saved at 0
         socket_header.len = EEPROM.read(0);
         uint8_t len = socket_header.len;
         uint8_t mesgindex = 0;
+        
         zeroArray(this->message, 5);
+        
         for(int i = 0; i < len; i++)
         {
           char value = EEPROM.read(i + 1);
@@ -164,6 +227,7 @@ struct Body
             this->message[mesgindex] += value;
           }
         }
+        
         this->panel_mode = EEPROM.read(len + 1);
         return true;
     }
@@ -171,30 +235,17 @@ struct Body
   }
 };
 
-
-const byte snowflakes[] =
-{
-  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
-  0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0,
-  1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1,
-  0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0,
-  0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0
-};
-
-const byte* animation_table = { snowflakes };
-
+/*********************************************************************
+ * Display a rectangle at random location, random size. Zoom in from 
+ * the center and then zoom out
+ *********************************************************************/
 void fadingRect()//draws a fading rectangle starting at a certain point and fade in
 {
   
   int8_t rect_x = random(0, WIDTH);
   int8_t rect_y = random(0, HEIGHT);
   matrix.fillScreen(0);
+  //zoom in
   for(int i = 0; i < 7; i++)
   {
     matrix.drawRect(rect_x + i, rect_y + i, WIDTH - rect_x - i * 2, HEIGHT - rect_y - i * 2, 
@@ -205,6 +256,7 @@ void fadingRect()//draws a fading rectangle starting at a certain point and fade
     matrix.fillScreen(0);
   }
 
+  //zoom out
   for(int i = 6; i >= 0 ; i--)
   {
     matrix.drawRect(rect_x + i, rect_y + i, WIDTH - rect_x - i * 2, HEIGHT - rect_y - i * 2,  
@@ -216,10 +268,14 @@ void fadingRect()//draws a fading rectangle starting at a certain point and fade
   }
 }
 
+/*********************************************************************
+ * Display multiple filled circle with random color
+ *********************************************************************/
 void flashingCircle()
 {
   matrix.fillScreen(0);
   int8_t amount = random(0, 10);
+  
   for(int i = 0; i < amount; i++)
   {
     int8_t tmpx = random(0, WIDTH);
@@ -231,11 +287,17 @@ void flashingCircle()
     
   }
   matrix.show();
+  
   if(delayAndCheck(1000))
     return;
+    
   matrix.fillScreen(0);
 }
 
+/*********************************************************************
+ * Creates a line from start of the matrix and the end of the matrix
+ * both moving toward each other. On their colision, display comet effect
+ *********************************************************************/
 void zigZagTraverse()
 {
   for(int i = 0; i < 512; i+= 4)
@@ -243,24 +305,34 @@ void zigZagTraverse()
     int starty = i / 32;
     int startx = i % 32;
     uint16_t color = matrix.Color(random(0, 255), random(0, 255), random(0, 255));
+
+    //zig zag effect
     if(starty % 2 == 1)
       startx = 31 - startx ;
+    //draws both line
     matrix.drawLine(startx, starty, startx + 3, starty, color);//define color later
     matrix.drawLine(WIDTH - 1 - startx, HEIGHT - 1 - starty, WIDTH - 1 - startx + 3, HEIGHT - 1 - starty, color);
     matrix.show();
+    
     if(delayAndCheck(150 - (i * 0.4)))
       return;
+
+    //wipes both lines
     matrix.drawLine(startx, starty, startx + 3, starty, matrix.Color(0, 0, 0));
     matrix.drawLine(WIDTH - 1 - startx, HEIGHT - 1 - starty, WIDTH - 1 - startx + 3, HEIGHT - 1 - starty, matrix.Color(0, 0, 0));
-
+    
     if(starty == HEIGHT / 2 && startx == WIDTH / 2)
     {
       fewRandomLine(HEIGHT / 2, 3);
-      break; // implement this later to end the loop directly
+      break;
     }
   }
 }
 
+/*********************************************************************
+ * Draws a few lines at different rows and move against each other
+ * in random color
+ *********************************************************************/
 void backAndForth()
 {
   matrix.fillScreen(0);
@@ -273,6 +345,8 @@ void backAndForth()
   {
     int j = 0;
     int i = 0;
+
+    //if this part is not clear, look up th ? operator
     for(count % 2 == 0 ? j = 0 : j = 1; j < WIDTH; j+=3)
     {
       matrix.drawLine(j, i, j - 4, i, color);
@@ -290,6 +364,7 @@ void backAndForth()
       matrix.show();
       if(delayAndCheck(100))
         return;
+        
       if(j != 0)
       {
         //delete the last line
@@ -299,28 +374,18 @@ void backAndForth()
         matrix.drawLine(j, i + 8, j - 4, i + 8, black);
         matrix.drawLine(WIDTH - 1 - j, i + 12, WIDTH - 1 - j + 4, i + 12, black);
       }          
-    }
-
-    /*for(int j = 0; j < WIDTH; j++)
-    {
-      matrix.drawPixel(j, i, color);
-      if(index == 0)
-        color = matrix.Color(r, g - count * 13.8, b);
-      else if(index == 1)
-        color = matrix.Color(r, g, b - count * 13.8);
-      else
-        color = matrix.Color(r - count * 13.8, g, b);          
-    }*/
-    
+    }    
   }
   matrix.fillScreen(0);
   
 }
 
-
+/*********************************************************************
+ * Flashes words out and wipes the screen with random clor
+ *********************************************************************/
 void flashingWord()
 {
-  String message[6] = {"Ready?" "Seattle", "University", "Welcomes", "You", "All"}; 
+  String message[6] = {"Ready?", "Seattle", "University", "Welcomes", "You", "All"}; 
   String words = "";
   for(int i = 0; i < 6; i++)
   {
@@ -331,9 +396,15 @@ void flashingWord()
     matrix.show();
     
   }
+  //wipes the screen
   screenBomb();
 }
 
+/*********************************************************************
+ * Comet effect helper, display it in a certain row of the matrix
+ * @Param int8_t The row number to start on
+ * @Param int8_t The number of lines to display
+ *********************************************************************/
 void fewRandomLine(int8_t y, int8_t lines)
 {
   for(int8_t tmp = 0; tmp < lines; tmp++)
@@ -351,6 +422,10 @@ void fewRandomLine(int8_t y, int8_t lines)
   matrix.fillScreen(0);
 }
 
+/*********************************************************************
+ * Display a rectangle at random location, random size. Zoom in from 
+ * the center and then zoom out
+ *********************************************************************/
 void oppositeRandomLine()
 {
   //prints random color pixel starting on the top and bottom line and moving toward the cetner
@@ -371,12 +446,15 @@ void oppositeRandomLine()
  matrix.fillScreen(0);
 }
 
+/*********************************************************************
+ * Flashes the screen when a clap is detected
+ *********************************************************************/
 void clapTurnon()
 {
   uint16_t color;
 
   color = matrix.Color(random(0, 255), random(0, 255), random(0, 255));
-  int temp = readAudio();
+  int temp = readAudio(false);
   Serial.println(temp);
   if(temp > 12)
   {
@@ -396,20 +474,23 @@ void clapTurnon()
   }
 }
 
+/*********************************************************************
+ * Draws a music bar graph and rises when a voice is detected
+ * over the background noise
+ *********************************************************************/
 void musicBar()
 { 
   uint8_t index = 0;
-  uint16_t bgnoiselevel = 0;
   //initliaze the panel with some lines
   //only do so once
   if(matrix.getPixelColor((HEIGHT - 1) * WIDTH) == 0)
   {
     //HEIGHT - 1 * WIDTH) is the bottom left pixel
-    //Serial.println((HEIGHT - 2) * WIDTH + 1);
     matrix.fillScreen(0);
+    
     for(int i = 0; i < WIDTH; i++)
     {
-      int16_t value = readAudio();
+      int16_t value = readAudio(false);
       //initalize height base on noise level
       if(value > 12)
         value = 12;
@@ -418,8 +499,11 @@ void musicBar()
       uint8_t r = random(0, 255);
       uint8_t g = random(0 , 255);
       uint8_t b = random(0, 255);
+      
       matrix.drawLine(i, HEIGHT - 1, i, HEIGHT - 1 - len, matrix.Color(r, g, b));
       matrix.show();
+
+      //keep tracks of the height and color for later
       heights[i] = HEIGHT - 1 - len;
       colors[index] = r;
       colors[index + 1] = g;
@@ -429,41 +513,34 @@ void musicBar()
   }
 
   index = 0;
-  bgnoiselevel = bgnoise;
   
   //base on the initlization, add or delete from it to make the groove.
+
   for(int i = 0; i < WIDTH; i++)
   {
     
     //range from deleting 5 pixels to adding 5 pixels
-    int8_t len  = 1;
-    int16_t currentnoiselevel = readAudio();
-    //Serial.println(currentnoiselevel);
-    if(currentnoiselevel < bgnoise)
-      len *= -1;
-    else if((currentnoiselevel - bgnoiselevel) == 2)
-      len *= 3;
-
+    int8_t len  = -1;
+    int16_t currentnoiselevel = readAudio(false);
+    if(currentnoiselevel > 8)
+        len = 3;
+    else if(currentnoiselevel > 13)
+        len = 5;
     
     if(len > 0)
     {
-      len = random(0, len);
       matrix.drawLine(i, heights[i], i, heights[i] - len, matrix.Color(colors[index], colors[index + 1], colors[index + 2]));
       heights[i] -= len;
     }
     else if(len < 0)
     {
-      len = random(len, 0);
       matrix.drawLine(i, heights[i], i, heights[i] + (-1 * len), matrix.Color(0, 0, 0));
       heights[i] += -1 * len;
+      //if it decreased too much , set it the bottom
+      if(heights[i] > 15)
+        heights[i] = 15;
     }
-      
-    
-    /*if((heights[i] + len) < 0)
-      heights[i] = 0;
-    else if(heights[i] + len > 15)
-      heights[i] += len;*/
-    
+        
     index += 3;
     if(delayAndCheck(10))
       return;
@@ -471,6 +548,9 @@ void musicBar()
   matrix.show();
 }
 
+/*********************************************************************
+ * Draws a color changing line starting on row 1
+ *********************************************************************/
 void colorTransitionLine()
 {
   int8_t delta_g = 5;
@@ -484,34 +564,27 @@ void colorTransitionLine()
     {
       matrix.drawPixel(j, i, matrix.Color(0, 128 - j * delta_g, 0 + delta_b * j));
       matrix.show();
-      /*if(j > WIDTH / 2)
-      {
-        matrix.drawPixel(count, i, matrix.Color(0, 0, 0));
-        matrix.show();
-        count++;
-      }*/
+      
       if(j % 31 == 0)
         matrix.fillScreen(0);
     }
+    
     if(delayAndCheck(30))
       return;
+      
     //from blue to purple
     delta_b = 8;
     for(int j = WIDTH - 1; j >= 0; j--)
     {
       matrix.drawPixel(j, i, matrix.Color(50 + delta_r * j, 0, 255 - delta_b * j));
       matrix.show();
-      /*if(j < WIDTH / 2)
-      {
-        matrix.drawPixel(count, i, matrix.Color(0, 0, 0));
-        matrix.show();
-        count--;
-      }*/
     }
   } 
 }
 
-//make sure to pair this with some text after so it has some point
+/*********************************************************************
+ * Fill the screen with random color and creates a moving effect
+ *********************************************************************/
 void screenBomb()
 {
   int8_t y = 1;
@@ -519,6 +592,7 @@ void screenBomb()
                            matrix.Color(0, 192, 255), matrix.Color(0, 98, 255), matrix.Color(124, 0, 255),
                            matrix.Color(201, 0, 255), matrix.Color(255, 0, 162), matrix.Color(255, 0, 107)};
   int8_t index = random(0, 3);
+  
   for(int8_t times = 0; times < 3; times++)
   {
     for(int8_t cols = 0; cols < HEIGHT; cols ++)
@@ -526,19 +600,25 @@ void screenBomb()
       for(int8_t x = 0; x < WIDTH; x++)
       {
         matrix.drawPixel(x, cols, colors[index][times]);
+        
+        //if the current row is filled 1/3, start on the next row simultaneously
         if(x > WIDTH / 3 && (cols + 1 < HEIGHT))
           matrix.drawPixel(x, cols + 1, colors[index][times]);
           
       }  
+      
       matrix.show();    
       delayAndCheck(10);
     }
   }
+  
   delayAndCheck(100);
   matrix.fillScreen(0);
 }
 
-//breath the upper half than the lower half
+/*********************************************************************
+ * Creates the breath effect for the screen
+ *********************************************************************/
 void breathEffect()
 {
   matrix.fillScreen(0);
@@ -583,6 +663,12 @@ void breathEffect()
   }
 }
 
+/*********************************************************************
+ * Check for incoming packages and incoming connection request
+ * @Param uint16_t Time interval to keep runing this check
+ * @Return Returns true if there is packages or connection
+ * false otherwise
+ *********************************************************************/
 bool delayAndCheck(uint16_t interval)//ms
 {
     unsigned long timeout = millis();
