@@ -33,7 +33,7 @@ void receiveData();
 void dropSnowFlakes();
 void oppositeRandomLine();
 void fewRandomLine(int8_t y, int8_t lines);
-void displayText(int8_t x, int8_t y, String& message, uint16_t color);
+void displayText(int16_t x, int16_t y, String& message, uint16_t color);
 void screenBomb();
 void zeroArray(String* target, int8_t len);
 int16_t readAudio(bool flag);
@@ -163,9 +163,6 @@ struct Body
           bufferedlength += this->message[mesgindex].length() + 1;
           mesgindex++;
           //+1 because this byte is used for spliter
-          /*Serial.println(" ");
-          Serial.println(bufferedlength);
-          Serial.println(" ");*/
         }
         else
         {
@@ -251,7 +248,7 @@ void fadingRect()//draws a fading rectangle starting at a certain point and fade
     matrix.drawRect(rect_x + i, rect_y + i, WIDTH - rect_x - i * 2, HEIGHT - rect_y - i * 2, 
                     matrix.Color(0 + i * COLOR_INCREMENT, 100 - i * COLOR_DECREAMENT, 0 + i * COLOR_INCREMENT));
     matrix.show();
-    if(delayAndCheck(1000))
+    if(delayAndCheck(500))
       return;
     matrix.fillScreen(0);
   }
@@ -262,7 +259,7 @@ void fadingRect()//draws a fading rectangle starting at a certain point and fade
     matrix.drawRect(rect_x + i, rect_y + i, WIDTH - rect_x - i * 2, HEIGHT - rect_y - i * 2,  
                     matrix.Color(0 + i * COLOR_INCREMENT, 100 - i * COLOR_DECREAMENT, 0 + i * COLOR_INCREMENT));
     matrix.show();
-    if(delayAndCheck(1000))
+    if(delayAndCheck(500))
       return;
     matrix.fillScreen(0);
   }
@@ -288,7 +285,7 @@ void flashingCircle()
   }
   matrix.show();
   
-  if(delayAndCheck(1000))
+  if(delayAndCheck(500))
     return;
     
   matrix.fillScreen(0);
@@ -522,7 +519,7 @@ void musicBar()
     //range from deleting 5 pixels to adding 5 pixels
     int8_t len  = -1;
     int16_t currentnoiselevel = readAudio(false);
-    if(currentnoiselevel > 8)
+    if(currentnoiselevel > 9)
         len = 3;
     else if(currentnoiselevel > 13)
         len = 5;

@@ -20,7 +20,7 @@
 
 #define FONT_HEIGHT 8
 #define FONT_WIDTH 6
-#define TOTAL_ANIMATION 8
+#define TOTAL_ANIMATION 12
 
 //Using the NeoMatrix Library to set up the control
 //visit their github for more info
@@ -38,8 +38,8 @@ Header socket_header(0x00, 0);
 //An array of function pointers for the Default mode displays
 //contains all the animation function so the chip can just loop
 //through
-void (*animations[11])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeRandomLine, musicBar, 
-                            colorTransitionLine, breathEffect,dropSnowFlakes, screenBomb, flashingWord, backAndForth};
+void (*animations[12])() = {fadingRect, flashingCircle, zigZagTraverse, oppositeRandomLine, musicBar, 
+                            colorTransitionLine, breathEffect,dropSnowFlakes, screenBomb, flashingWord, backAndForth, clapTurnon};
 
 //Default set up run by the chip
 void setup() 
@@ -81,7 +81,7 @@ void setup()
  * @Param String& The given text to display
  * @Paran uint16_t The given color for the text
  *********************************************************************/
-void displayText(int8_t x, int8_t y, String& message, uint16_t color)
+void displayText(int16_t x, int16_t y, String& message, uint16_t color)
 {
   matrix.fillScreen(0);
   matrix.setTextColor(color);
@@ -101,7 +101,7 @@ void displayText(int8_t x, int8_t y, String& message, uint16_t color)
  * @Param int8_t The given ending y location
  * @Param uint16_t The given color
  *********************************************************************/
-void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, int8_t endy, uint16_t color)
+void scrollingText(String& message, int16_t startx, int16_t starty, int16_t endx, int16_t endy, uint16_t color)
 {
     matrix.fillScreen(0);//clear the screen
     matrix.setTextWrap(false);
@@ -114,11 +114,11 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = 1;
         else
           multiplier = -1;
-        for(int8_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally 
+        for(int16_t i = startx; i > multiplier * endx; startx > endx ?i-- : i++)//scrolling horizontally 
         {         
-          displayText(i, 0, message, color);
+          displayText(i, starty, message, color);
           //delay(100);
-          if(delayAndCheck(200))
+          if(delayAndCheck(100))
             return;
         }
         Serial.println(message);
@@ -132,10 +132,10 @@ void scrollingText(String& message, int8_t startx, int8_t starty, int8_t endx, i
           multiplier = 1;
         else
           multiplier = -1;
-        for(int8_t i = starty; i > multiplier * endy; starty > endy ?i-- : i++)//scrolling horizontally right to left
+        for(int16_t i = starty; i > multiplier * endy; starty > endy ?i-- : i++)//scrolling horizontally right to left
         {
           displayText(0, i, message, color);
-          if(delayAndCheck(200))
+          if(delayAndCheck(100))
             return;
         }
     }
@@ -351,14 +351,15 @@ void loop() {
   {
     //under default mode, play each animation in order. Each for 2 minutes.
     case DEFAULTMODE:
-      while((millis() - timer < 30000))
+      while((millis() - timer < 60000))
       {
         (*animations[num])();
         if(socket_body.panel_mode != DEFAULTMODE)
           break;
-        
+        Serial.println(socket_body.message[mesg_index].length());
         if(!socket_body.message[mesg_index].equals(" "))
-          scrollingText(socket_body.message[mesg_index], WIDTH, 0, -WIDTH, 0, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
+          scrollingText(socket_body.message[mesg_index], WIDTH, 4, -WIDTH + socket_body.message[mesg_index].length() * -6,
+                        4, matrix.Color(random(0, 255), random(0, 255), random(0, 255)));
         
         delay(100);
         matrix.fillScreen(0);
@@ -372,7 +373,7 @@ void loop() {
       {
         mesg_index = 0;
       }
-      bgnoise = readAudio(false);
+      
       break;
     case FADINGRECT:
       fadingRect();
@@ -388,7 +389,8 @@ void loop() {
       while((millis() - timer < 60000))
       {
         musicBar();
-        //matrix.fillScreen(0);
+        if(socket_body.panel_mode != MUSICBAR)
+          return;
       }
       matrix.fillScreen(0);
       break;

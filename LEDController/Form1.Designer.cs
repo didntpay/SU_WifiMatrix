@@ -252,7 +252,6 @@
             this.sendcmd.TabIndex = 14;
             this.sendcmd.Text = "Change mode";
             this.sendcmd.UseVisualStyleBackColor = true;
-            this.sendcmd.Click += new System.EventHandler(this.Sendcmd_Click);
             // 
             // connectionPanel
             // 
